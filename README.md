@@ -10,9 +10,8 @@ and pushes them to Apache Kafka topics.
 
 ## Requirements
 
-- Python 3.8+
-- `confluent-kafka` library
-- Docker + Docker Compose (for local Kafka cluster)
+- Base: Python 3.8, `confluent-kafka` library
+- For local testing: pytest, docker + docker compose
 
 ## Getting Started
 
@@ -21,3 +20,18 @@ and pushes them to Apache Kafka topics.
 ```bash
 pip install -r requirements.txt
 ```
+### 2. Prepare environment
+
+1. Copy [example.env](odm_kafka_bridge/example.env) to `.env` and fill in your credentials for WebODM and Kafka.
+2. Edit [config.toml)(odm_kafka_bridge/config.toml) to set server URLs and other configuration parameters.
+
+### 3. Run
+
+The core logic in [odm_kafka_bridge](odm_kafka_bridge) can be imported into other Python modules.
+
+A commandline interface is provided as well. Check the available options with:
+
+```bash
+odm_kafka_bridge.py -h
+```
+

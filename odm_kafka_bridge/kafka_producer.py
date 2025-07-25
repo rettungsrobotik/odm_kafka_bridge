@@ -4,7 +4,16 @@ from confluent_kafka import Producer
 import json
 
 
-def produce(data: dict, topic: str, key: str):
+def produce(data: dict, topic: str, key: str) -> None:
+    """
+    Sends a message to a Kafka topic.
+
+    Args:
+        data: a dict of the data to send.
+        topic: name of the Kakfa topic to send the data to.
+        key: key of the message (used by Kafka to assign partition, ensure ordering).
+    """
+
     producer = Producer({"bootstrap.servers": "localhost:9092"})
 
     print("Sending message...")
@@ -17,7 +26,15 @@ def produce(data: dict, topic: str, key: str):
     producer.flush()
 
 
-def callback(err, msg):
+def callback(err, msg) -> None:
+    """
+    Gets called by Kafka after a message as been sent.
+
+    Args:
+        err: error message
+        msg: normal message
+    """
+
     if not err:
         print(f"Message succcessfully sent to {msg.topic()}")
     else:

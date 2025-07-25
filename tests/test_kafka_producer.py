@@ -4,7 +4,7 @@
 Unit tests for odm_kafka_bridge.producer
 """
 
-from odm_kafka_bridge.producer import produce
+from odm_kafka_bridge.kafka_producer import produce
 from .mock_consumer import KafkaMockConsumer
 
 import time

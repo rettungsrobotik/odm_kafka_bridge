@@ -1,0 +1,7 @@
+[webodm]
+url = "https://localhost:8000"
+project = "Example"
+
+[kafka]
+url = "https://localhost:8000"
+topic = "webodm_assets"

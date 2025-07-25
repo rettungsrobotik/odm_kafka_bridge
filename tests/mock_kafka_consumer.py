@@ -10,7 +10,7 @@ from collections import defaultdict
 class KafkaMockConsumer:
     """
     Receives messages from a Kafka cluster on a given topic and key.
-    Stores received messages to enable checking if sent=received.
+    Stores received messages to enable checking if sent==received.
     """
 
     def __init__(
