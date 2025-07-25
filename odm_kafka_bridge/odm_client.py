@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from json import loads
 import requests
 from typing import Optional
 
@@ -9,17 +10,17 @@ class ODMClient:
     Client for downloading assets created by ODM (e.g., DSM) through ODM'S REST API.
     """
 
-    def __init__(self, base_url: str, username: str, password: str):
+    def __init__(
+        self, base_url: str, username: str, password: str, debug: bool = False
+    ):
         """
         Initialize the ODM client with server credentials.
-
-        NOTE: for security reasons, creation of a dedicated user account with read-only
-        permissions is recommended.
 
         Args:
             base_url (str): Base URL of the WebODM server (e.g. "https://localhost:8000").
             username (str): ODM username.
             password (str): ODM password.
+            debug (bool): enable debug mode.
         """
         assert [p is not None and len(p) > 0 for p in [base_url, username, password]]
 
@@ -28,15 +29,32 @@ class ODMClient:
         self.password = password
         self.token: Optional[str] = None
 
-    def authenticate(self) -> None:
-        """Authenticate with the server and store the JWT token."""
+        self._debug = debug
 
-        url = f"{self.base_url}/api/token-auth"
-        response = requests.post(
-            url, data={"username": self.username, "password": self.password}
-        )
+    def authenticate(self) -> None:
+        """
+        Authenticate with the server and store the JWT token.
+
+        NOTE: for security reasons, it is recommended to use a dedicated user with
+        minimal permissions.
+        """
+
+        url = f"{self.base_url}/api/token-auth/"
+        data = {"username": self.username, "password": self.password}
+
+        if self._debug:
+            print(f"[DEBUG] Attempting authentication. Curl equivalent:")
+            print(f'curl -X POST -d "username={self.username}&password=*****" {url}')
+
+        response = requests.post(url, data=data, allow_redirects=False)
+        response_text = response.text
+        if self._debug:
+            print(f"[DEBUG] Response code: {response.status_code}")
+            print(f"[DEBUG] Response headers: {response.headers}")
+            print(f"[DEBUG] Response text: {response_text}")
+
         response.raise_for_status()
-        self.token = response.json()["token"]
+        self.token = loads(response_text)["token"]
 
     def _headers(self) -> dict:
         """Helper to return authorization headers."""
