@@ -110,9 +110,7 @@ class ODMClient:
 
         return None
 
-    def download_asset(
-        self, project_id: int, task_id: str, asset_name: str
-    ) -> TemporaryFile:
+    def download_asset(self, project_id: int, task_id: str, asset_name: str):
         """
         Download a specific asset from a task.
 

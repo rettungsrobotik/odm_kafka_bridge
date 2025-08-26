@@ -7,15 +7,22 @@ import json
 class KafkaClient:
     """Interacts with a Kafka cluster."""
 
-    def __init__(self, url: str):
+    def __init__(self, url: str, debug: bool = False):
         """
         Constructor.
 
         Args:
             url: Kafka URL, e.g. localhost:9092
+            debug: Enable debug output
         """
 
-        self.producer = Producer({"bootstrap.servers": url})
+        self.producer = Producer(
+            {
+                "bootstrap.servers": url,
+                "message.max.bytes": 104857600,  # 100 MiB
+            }
+        )
+        self._debug = debug
 
     def produce(self, data: dict, topic: str, key: str) -> None:
         """
@@ -50,6 +57,10 @@ class KafkaClient:
             print(f"[INFO] Message sent successfully to {msg.topic()}")
 
         return
+
+    def _print_dbg(self, msg: str):
+        if self._debug:
+            print(f"[DEBUG] [KafkaClient] {msg}")
 
 
 if __name__ == "__main__":

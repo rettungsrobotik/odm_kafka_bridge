@@ -5,7 +5,6 @@ from kafka_client import KafkaClient
 
 from base64 import b64encode
 from sys import getsizeof
-from tempfile import TemporaryFile
 
 
 def run_bridge(
@@ -44,7 +43,7 @@ def run_bridge(
             str: the debug message to print.
         """
         if debug:
-            print(f"[DEBUG] {msg}")
+            print(f"[DEBUG] [BRIDGE] {msg}")
 
     try:
 
@@ -52,17 +51,17 @@ def run_bridge(
         odm = ODMClient(
             base_url=odm_url, username=odm_user, password=odm_password, debug=debug
         )
-        _print_dbg(f"Trying to authenticate @ {odm_url} with user {odm_user}")
+        _print_dbg(f"Trying to authenticate {odm_user} @ {odm_url}")
         odm.authenticate()
         _print_dbg("Authentication successful!")
 
         _print_dbg(f"Initializing Kafka producer @ {kafka_url}")
-        kafka = KafkaClient(kafka_url)
+        kafka = KafkaClient(kafka_url, debug=debug)
 
         # asset identification
         _print_dbg(f"Fetching project ID for {project_name}")
         project_id = odm.get_project_id_by_name(project_name)
-        _print_dbg(f"Got project ID f{project_id}")
+        _print_dbg(f"Got project ID: {project_id}")
 
         _print_dbg(f"Fetching tasks for {project_id} that have {asset_name=}")
         task_id = odm.get_latest_task_with_asset(project_id, asset_name=asset_name)
@@ -73,25 +72,27 @@ def run_bridge(
         _print_dbg(f"Found task {task_id}")
 
         # download
-        _print_dbg(f"Downloading {asset_name}")
+        print(f"[INFO] Downloading {asset_name} from {task_id=}")
         tmp_file = odm.download_asset(project_id, task_id, asset_name)
 
         # upload
         tmp_file.seek(0)
         binary_data: bytes = tmp_file.read()
+        serialized_data = b64encode(binary_data).decode("utf-8")
+
         message = {
             "project": project_name,
             "task_id": task_id,
             "asset_name": asset_name,
-            # "asset_b64": b64encode(binary_data),
+            "asset_b64": serialized_data,
         }
         if debug:
             from humanfriendly import format_size
 
             bin_size = format_size(getsizeof(binary_data))
             _print_dbg(f"Size of binary data: {bin_size}")
-            msg_size = format_size(getsizeof(message))
-            _print_dbg(f"Size of encoded message: {msg_size}")
+            sd_size = format_size(getsizeof(serialized_data))
+            _print_dbg(f"Size of serialized data: {sd_size}")
 
         _print_dbg(f"Producing message to {kafka_topic=} with {kafka_key=}")
         kafka.produce(message, topic=kafka_topic, key=kafka_key)
