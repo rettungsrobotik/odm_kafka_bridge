@@ -1,0 +1,8 @@
+[webodm]
+url = "https://webodm.rettungsrobotik.de"
+project = "CREXDATA Trials"
+
+[kafka]
+url = "server.crexdata.eu:9092" # localhost:9092 when testing with local cluster
+topic = "UPB-CREXDATA-RealtimeDEM-Stream"
+key = "dsm.tif"

@@ -2,5 +2,9 @@
 __pycache__/
 *.py[codz]
 
-# Environment
+!odm_kafka_bridge/config/example.env
+
+# Authentication
 .env
+*.crt
+*.key
