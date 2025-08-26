@@ -6,3 +6,8 @@ project = "CREXDATA Trials"
 url = "server.crexdata.eu:9092" # localhost:9092 when testing with local cluster
 topic = "UPB-CREXDATA-RealtimeDEM-Stream"
 key = "dsm.tif"
+
+[kafka.ssl]
+ca_location = "config/kafka_ca.crt"
+certificate_location = "config/kafka_client.crt"
+key_location = "config/kafka_client.key"

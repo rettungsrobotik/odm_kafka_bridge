@@ -44,6 +44,7 @@ class ODMClient:
         minimal permissions.
         """
 
+        self._print_dbg(f"Trying to authenticate {self.username} @ {self.base_url}")
         url = f"{self.base_url}/api/token-auth/"
         data = {"username": self.username, "password": self.password}
         # NOTE: Equivalent curl command:
@@ -53,6 +54,7 @@ class ODMClient:
         response_text = response.text
         response.raise_for_status()
         self.token = loads(response_text)["token"]
+        print("[INFO] [WebODM] authentication successful")
         return
 
     def _headers(self) -> dict:
@@ -72,6 +74,7 @@ class ODMClient:
             int: The project ID.
         """
 
+        self._print_dbg(f"Fetching project ID for {project_name}")
         url = f"{self.base_url}/api/projects"
         response = requests.get(
             url, headers=self._headers(), params={"name": project_name}
@@ -83,6 +86,7 @@ class ODMClient:
             raise ValueError(f"No project found with name: {project_name}")
 
         id = resp_json[0]["id"]
+        self._print_dbg(f"Got project ID: {id}")
         return id
 
     def get_latest_task_with_asset(
@@ -99,6 +103,7 @@ class ODMClient:
             Optional[str]: Task ID if available, else None.
         """
 
+        self._print_dbg(f"Fetching tasks for {project_id} that have {asset_name=}")
         url = f"{self.base_url}/api/projects/{project_id}/tasks"
         response = requests.get(url, headers=self._headers())
         response.raise_for_status()
@@ -106,6 +111,8 @@ class ODMClient:
         resp_json = response.json()
         for task in reversed(resp_json):  # Most recent last
             if asset_name in task.get("available_assets", []):
+                id = task["id"]
+                self._print_dbg(f"Found task with {id=}")
                 return task["id"]
 
         return None
@@ -124,6 +131,7 @@ class ODMClient:
             tempfile.TemporaryFile file descriptor.
         """
 
+        print(f"[INFO] Downloading {asset_name} from {task_id=}")
         url = f"{self.base_url}/api/projects/{project_id}/tasks/{task_id}/download/{asset_name}"
         response = requests.get(url, headers=self._headers(), stream=True)
         response.raise_for_status()
@@ -133,3 +141,7 @@ class ODMClient:
             tmp_file.write(chunk)
 
         return tmp_file
+
+    def _print_dbg(self, msg: str):
+        if self._debug:
+            print(f"[DEBUG] [WebODM] {msg}")

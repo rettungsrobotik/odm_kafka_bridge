@@ -13,34 +13,27 @@ from typing import Any
 def main():
     args = parse_args()
 
-    # load configuration fom a toml file
-    config = load_config(args.config)
-    odm_url = args.odm_url if args.odm_url else config["webodm"]["url"]
-    project_name = config["webodm"]["project"]
-    asset_name = config["webodm"].get("asset", "dsm.tif")
-    kafka_url = config["kafka"]["url"]
-    kafka_topic = config["kafka"]["topic"]
-    kafka_key = config["kafka"].get("key", "default-key")
+    # load configuration fom toml file
+    config = load_config(args.config / "config.toml")
 
     # load ODM credentials from .env
-    dotenv_path = Path(__file__).parent / ".env"
+    dotenv_path = args.config / ".env"
     load_dotenv(dotenv_path)
-    username = os.getenv("ODM_USERNAME")
-    password = os.getenv("ODM_PASSWORD")
-    if not username or not password:
-        raise EnvironmentError(
-            "Missing ODM credentials. Please set ODM_USERNAME and ODM_PASSWORD in a .env file."
-        )
+    odm_username = os.getenv("ODM_USERNAME")
+    odm_password = os.getenv("ODM_PASSWORD")
+    kafka_username = os.getenv("KAFKA_USERNAME")
+    kafka_password = os.getenv("KAFKA_PASSWORD")
+    kafka_ssl_key_pw = os.getenv("KAFKA_SSL_KEY_PASS")
+    if not odm_username or not odm_password or not kafka_username or not kafka_password:
+        raise EnvironmentError("Missing credentials. Please check .env file.")
 
     run_bridge(
-        odm_url=odm_url,
-        odm_user=username,
-        odm_password=password,
-        project_name=project_name,
-        asset_name=asset_name,
-        kafka_url=kafka_url,
-        kafka_topic=kafka_topic,
-        kafka_key=kafka_key,
+        config=config,
+        odm_user=odm_username,
+        odm_password=odm_password,
+        kafka_user=kafka_username,
+        kafka_password=kafka_password,
+        kafka_ssl_key_pw=kafka_ssl_key_pw,
         debug=args.debug,
     )
 
@@ -59,13 +52,14 @@ def parse_args() -> Namespace:
         "--config",
         type=Path,
         metavar="path",
-        default=Path(__file__).parent / "config.toml",
-        help="Path to TOML config file (default: %(default)s)",
+        default=Path(__file__).parent / "config",
+        help="Path to config dir with toml and certs (default: %(default)s)",
     )
     parser.add_argument(
         "--debug",
         action="store_true",
-        help="Enable debug output (default: false)",
+        default=False,
+        help="Enable debug output (default: %(default)s)",
     )
     parser.add_argument(
         "--odm_url",

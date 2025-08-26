@@ -1,1 +1,5 @@
+argparse
 confluent-kafka
+dotenv
+pathlib
+toml

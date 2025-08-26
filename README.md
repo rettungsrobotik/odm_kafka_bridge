@@ -22,8 +22,32 @@ pip install -r requirements.txt
 ```
 ### 2. Prepare environment
 
-1. Copy [example.env](odm_kafka_bridge/example.env) to `.env` and fill in your credentials for WebODM and Kafka.
-2. Edit [config.toml](odm_kafka_bridge/config.toml) to set server URLs and other configuration parameters.
+Convert provided truststore and keystore to confluent_kafka compatible key and crt files:
+
+```bash
+# Export CA certificate from truststore
+keytool -importkeystore -srckeystore kafka.truststore.jks \
+        -srcstoretype JKS \
+        -destkeystore truststore.p12 \
+        -deststoretype PKCS12 \
+        -srcstorepass <truststore-password>
+
+openssl pkcs12 -in truststore.p12 -nokeys -out config/kafka_ca.crt
+
+# Export client cert & key from keystore
+keytool -importkeystore -srckeystore kafka.keystore.jks \
+        -srcstoretype JKS \
+        -destkeystore keystore.p12 \
+        -deststoretype PKCS12 \
+        -srcstorepass <keystore-password>
+
+openssl pkcs12 -in keystore.p12 -nocerts -nodes -out config/kafka_client.key
+openssl pkcs12 -in keystore.p12 -nokeys -out config/kafka_client.crt
+```
+
+Copy [example.env](odm_kafka_bridge/config/example.env) to `config/.env` and fill in your credentials for WebODM, Kafka, and Kafka client SSL certificate.
+
+Edit [config.toml](odm_kafka_bridge/config/config.toml) to set server URLs and other configuration parameters.
 
 ### 3. Run
 
