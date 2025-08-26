@@ -2,6 +2,7 @@
 
 from json import loads
 import requests
+from tempfile import TemporaryFile
 from typing import Optional
 
 
@@ -22,14 +23,18 @@ class ODMClient:
             password (str): ODM password.
             debug (bool): enable debug mode.
         """
-        assert [p is not None and len(p) > 0 for p in [base_url, username, password]]
+        access_args = [base_url, username, password]
+        assert [
+            p is not None and len(p) > 0 for p in access_args
+        ], f"URL, username and password may not be empty but at least one ist: {access_args}"
 
         self.base_url = base_url.rstrip("/")
         self.username = username
         self.password = password
         self.token: Optional[str] = None
-
         self._debug = debug
+
+        return
 
     def authenticate(self) -> None:
         """
@@ -41,20 +46,14 @@ class ODMClient:
 
         url = f"{self.base_url}/api/token-auth/"
         data = {"username": self.username, "password": self.password}
-
-        if self._debug:
-            print(f"[DEBUG] Attempting authentication. Curl equivalent:")
-            print(f'curl -X POST -d "username={self.username}&password=*****" {url}')
+        # NOTE: Equivalent curl command:
+        # curl -X POST -d "username={username}&password=*****" {url}
 
         response = requests.post(url, data=data, allow_redirects=False)
         response_text = response.text
-        if self._debug:
-            print(f"[DEBUG] Response code: {response.status_code}")
-            print(f"[DEBUG] Response headers: {response.headers}")
-            print(f"[DEBUG] Response text: {response_text}")
-
         response.raise_for_status()
         self.token = loads(response_text)["token"]
+        return
 
     def _headers(self) -> dict:
         """Helper to return authorization headers."""
@@ -79,11 +78,12 @@ class ODMClient:
         )
         response.raise_for_status()
 
-        results = response.json()["results"]
-        if not results:
+        resp_json = response.json()
+        if not resp_json:
             raise ValueError(f"No project found with name: {project_name}")
 
-        return results[0]["id"]
+        id = resp_json[0]["id"]
+        return id
 
     def get_latest_task_with_asset(
         self, project_id: int, asset_name: str = "dsm.tif"
@@ -103,16 +103,16 @@ class ODMClient:
         response = requests.get(url, headers=self._headers())
         response.raise_for_status()
 
-        tasks = response.json()["results"]
-        for task in reversed(tasks):  # Most recent last
+        resp_json = response.json()
+        for task in reversed(resp_json):  # Most recent last
             if asset_name in task.get("available_assets", []):
                 return task["id"]
 
         return None
 
     def download_asset(
-        self, project_id: int, task_id: str, asset_name: str, output_path: str
-    ) -> None:
+        self, project_id: int, task_id: str, asset_name: str
+    ) -> TemporaryFile:
         """
         Download a specific asset from a task.
 
@@ -121,12 +121,17 @@ class ODMClient:
             task_id (str): Task ID.
             asset_name (str): Name of the asset to download.
             output_path (str): Path to save the downloaded file.
+
+        Returns:
+            tempfile.TemporaryFile file descriptor.
         """
 
         url = f"{self.base_url}/api/projects/{project_id}/tasks/{task_id}/download/{asset_name}"
         response = requests.get(url, headers=self._headers(), stream=True)
         response.raise_for_status()
 
-        with open(output_path, "wb") as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                f.write(chunk)
+        tmp_file = TemporaryFile()
+        for chunk in response.iter_content(chunk_size=8192):
+            tmp_file.write(chunk)
+
+        return tmp_file

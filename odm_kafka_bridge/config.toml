@@ -1,7 +1,8 @@
 [webodm]
-url = "https://localhost:8000"
-project = "Example"
+url = "https://webodm.rettungsrobotik.de"
+project = "CREXDATA Trials"
 
 [kafka]
-url = "https://localhost:8000"
+url = "localhost:9092"
 topic = "webodm_assets"
+key = "dsm.tif"

@@ -13,16 +13,16 @@ from typing import Any
 def main():
     args = parse_args()
 
+    # load configuration fom a toml file
     config = load_config(args.config)
-
     odm_url = args.odm_url if args.odm_url else config["webodm"]["url"]
     project_name = config["webodm"]["project"]
     asset_name = config["webodm"].get("asset", "dsm.tif")
-
-    # kafka_url = config["kafka"]["url"]
+    kafka_url = config["kafka"]["url"]
     kafka_topic = config["kafka"]["topic"]
     kafka_key = config["kafka"].get("key", "default-key")
 
+    # load ODM credentials from .env
     dotenv_path = Path(__file__).parent / ".env"
     load_dotenv(dotenv_path)
     username = os.getenv("ODM_USERNAME")
@@ -38,6 +38,7 @@ def main():
         odm_password=password,
         project_name=project_name,
         asset_name=asset_name,
+        kafka_url=kafka_url,
         kafka_topic=kafka_topic,
         kafka_key=kafka_key,
         debug=args.debug,

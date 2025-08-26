@@ -23,15 +23,15 @@ pip install -r requirements.txt
 ### 2. Prepare environment
 
 1. Copy [example.env](odm_kafka_bridge/example.env) to `.env` and fill in your credentials for WebODM and Kafka.
-2. Edit [config.toml)(odm_kafka_bridge/config.toml) to set server URLs and other configuration parameters.
+2. Edit [config.toml](odm_kafka_bridge/config.toml) to set server URLs and other configuration parameters.
 
 ### 3. Run
 
 The core logic in [odm_kafka_bridge](odm_kafka_bridge) can be imported into other Python modules.
 
-A commandline interface is provided as well. Check the available options with:
+A commandline interface (CLI) is provided as well. Check the available options with:
 
 ```bash
-odm_kafka_bridge.py -h
+cli.py -h
 ```
 

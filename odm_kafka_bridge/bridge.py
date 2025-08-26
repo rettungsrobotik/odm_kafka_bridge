@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 
 from odm_client import ODMClient
-from kafka_producer import produce
+from kafka_producer import KafkaProducer
 
 from base64 import b64encode
+from sys import getsizeof
+from tempfile import TemporaryFile
 
 
 def run_bridge(
@@ -12,6 +14,7 @@ def run_bridge(
     odm_password: str,
     project_name: str,
     asset_name: str,
+    kafka_url: str,
     kafka_topic: str,
     kafka_key: str,
     debug: bool = False,
@@ -20,61 +23,86 @@ def run_bridge(
     Download an asset from WebODM and send it to Kafka.
 
     Args:
-        odm_url (str): Base URL of WebODM.
-        odm_user (str): WebODM username.
-        odm_password (str): WebODM password.
-        project_name (str): Name of the project in WebODM.
-        asset_name (str): Name of the asset to download.
-        kafka_topic (str): Kafka topic to publish to.
-        kafka_key (str): Kafka message key.
+        odm_url: Base URL of WebODM.
+        odm_user: WebODM username.
+        odm_password: WebODM password.
+        project_name: Name of the project in WebODM.
+        asset_name: Name of the asset to download.
+        kafka_url: URL of the Kafka cluster.
+        kafka_topic: Kafka topic to publish to.
+        kafka_key: Kafka message key.
         debug (bool): Enable debug output.
 
     Raises:
         RuntimeError
     """
 
+    def _print_dbg(msg: str) -> None:
+        """Helper function to print debug messages if flag ist set.
+
+        Args:
+            str: the debug message to print.
+        """
+        if debug:
+            print(f"[DEBUG] {msg}")
+
     try:
+
         # ODM authentication
         odm = ODMClient(
             base_url=odm_url, username=odm_user, password=odm_password, debug=debug
         )
+        _print_dbg(f"Trying to authenticate @ {odm_url} with user {odm_user}")
         odm.authenticate()
-        if debug:
-            print("[DEBUG] Authenticated with WebODM")
+        _print_dbg("Authentication successful!")
+
+        _print_dbg(f"Initializing Kafka producer @ {kafka_url}")
+        producer = KafkaProducer(kafka_url)
 
         # asset identification
+        _print_dbg(f"Fetching project ID for {project_name}")
         project_id = odm.get_project_id_by_name(project_name)
+        _print_dbg(f"Got project ID f{project_id}")
+
+        _print_dbg(f"Fetching tasks for {project_id} that have {asset_name=}")
         task_id = odm.get_latest_task_with_asset(project_id, asset_name=asset_name)
         if not task_id:
             raise RuntimeError(
-                f"No task with asset '{asset_name}' found in project '{project_name}'"
+                f"No task in {project_id=} with asset {asset_name=} found!"
             )
+        _print_dbg(f"Found task {task_id}")
+
+        # download
+        _print_dbg(f"Downloading {asset_name}")
+        tmp_file = odm.download_asset(project_id, task_id, asset_name)
+
+        # upload
+        tmp_file.seek(0)
+        binary_data: bytes = tmp_file.read()
+        message = {
+            "project": project_name,
+            "task_id": task_id,
+            "asset_name": asset_name,
+            # "asset_b64": b64encode(binary_data),
+        }
         if debug:
-            print(f"[DEBUG] Found task {task_id} with asset '{asset_name}'")
+            from humanfriendly import format_size
 
-        # asset download to temporary file
-        temp_path = f"/tmp/{asset_name}"
-        odm.download_asset(project_id, task_id, asset_name, temp_path)
+            bin_size = format_size(getsizeof(binary_data))
+            _print_dbg(f"Size of binary data: {bin_size}")
+            msg_size = format_size(getsizeof(message))
+            _print_dbg(f"Size of encoded message: {msg_size}")
 
-        # push content to Kafka
-        with open(temp_path, "rb") as f:
-            binary_data: bytes = f.read()
+        _print_dbg(f"Producing message to {kafka_topic=} with {kafka_key=}")
+        producer.produce(message, topic=kafka_topic, key=kafka_key)
 
-            message = {
-                "project": project_name,
-                "task_id": task_id,
-                "asset_name": asset_name,
-                "asset_b64": b64encode(binary_data),
-            }
-            produce(message, topic=kafka_topic, key=kafka_key)
-            if debug:
-                print(
-                    f"[DEBUG] Asset pushed to Kafka topic '{kafka_topic}' with key '{kafka_key}'"
-                )
     except Exception as e:
         print(f"An error occured: {e}")
-
+        # drop into debugger automatically
         if debug:
             import pdb
 
             pdb.post_mortem()
+
+    _print_dbg(f"run_bridge() finished successfully")
+    return
