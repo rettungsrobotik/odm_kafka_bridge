@@ -14,7 +14,7 @@ class KafkaClient:
         config: dict,
         username: str,
         password: str,
-        ssl_pwd: str = "",
+        ssl_pwd: Optional[str] = "",
         debug: bool = False,
     ):
         """

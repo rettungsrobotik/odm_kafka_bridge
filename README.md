@@ -1,61 +1,70 @@
-# ODM Kafka Bridge (for CREXDATA)
+# CREXDATA WebODM<->Kafka Bridge
 
-This project implements a bridge that downloads orthophotos and DSMs from WebODM via its REST API,
-and pushes them to Apache Kafka topics.
-
-## Features
-
-- Designed to work with existing WebODM data structures (JSON format)
-- Local test environment with Docker Compose
+This project implements a bridge that downloads "Digital Surface Models" (DSMs) from WebODM via its REST API, and pushes them to Apache Kafka topics.
 
 ## Requirements
 
-- Base: Python 3.8, `confluent-kafka` library
-- For local testing: pytest, docker + docker compose
 
 ## Getting Started
 
 ### 1. Install dependencies
 
+Python >= 3.8 required.
+
 ```bash
 pip install -r requirements.txt
 ```
-### 2. Prepare environment
 
-Convert provided truststore and keystore to confluent_kafka compatible key and crt files:
+### 2. Prepare authentication certificates
+
+The keys provided by the CREXDATA server admins (`kafka.truststore.jks` and `kafka.keystore.jks`) must be converted to `.key` and `.crt` files to be compatible with `confluent_kafka`.
 
 ```bash
-# Export CA certificate from truststore
+# Export CA certificate from truststore to intermediate PKCS12 format
 keytool -importkeystore -srckeystore kafka.truststore.jks \
         -srcstoretype JKS \
         -destkeystore truststore.p12 \
         -deststoretype PKCS12 \
         -srcstorepass <truststore-password>
 
-openssl pkcs12 -in truststore.p12 -nokeys -out config/kafka_ca.crt
-
-# Export client cert & key from keystore
+# Export client cert & key from keystore as PKCS12
 keytool -importkeystore -srckeystore kafka.keystore.jks \
         -srcstoretype JKS \
         -destkeystore keystore.p12 \
         -deststoretype PKCS12 \
         -srcstorepass <keystore-password>
 
+# Convert from PKCS12
+openssl pkcs12 -in truststore.p12 -nokeys -out config/kafka_ca.crt
 openssl pkcs12 -in keystore.p12 -nocerts -nodes -out config/kafka_client.key
 openssl pkcs12 -in keystore.p12 -nokeys -out config/kafka_client.crt
 ```
 
-Copy [example.env](odm_kafka_bridge/config/example.env) to `config/.env` and fill in your credentials for WebODM, Kafka, and Kafka client SSL certificate.
+### 3. Edit configuration and prepare .env
 
-Edit [config.toml](odm_kafka_bridge/config/config.toml) to set server URLs and other configuration parameters.
+* Edit [config.toml](odm_kafka_bridge/config/config.toml) to set server URLs, ODM project name, Kafka topic name, etc.
+* Copy [example.env](odm_kafka_bridge/config/example.env) to `config/.env` and fill in your credentials for WebODM, Kafka, and Kafka client SSL certificate.
 
 ### 3. Run
 
-The core logic in [odm_kafka_bridge](odm_kafka_bridge) can be imported into other Python modules.
-
-A commandline interface (CLI) is provided as well. Check the available options with:
+This repository provides a commandline interface (CLI). Check the usage available options with:
 
 ```bash
-cli.py -h
+cli.py --help
 ```
+
+## Development
+
+The core module in [odm_kafka_bridge](odm_kafka_bridge) can be imported by other projects:
+
+```python
+from odm_kafka_bridge import run_bridge
+```
+
+A local Kafka cluster for testing can be spun up using docker:
+
+```bash
+docker compose -f tests/docker-compose.yml up
+```
+
 
