@@ -4,8 +4,8 @@ from confluent_kafka import Message, Producer
 import json
 
 
-class KafkaProducer:
-    """Pushes data to a Kafka topic."""
+class KafkaClient:
+    """Interacts with a Kafka cluster."""
 
     def __init__(self, url: str):
         """
@@ -53,6 +53,6 @@ class KafkaProducer:
 
 
 if __name__ == "__main__":
-    producer = KafkaProducer("localhost:9092")
+    client = KafkaClient("localhost:9092")
     test_data = {"msg": "Hello, world!"}
-    producer.produce(test_data, "example-topic", "test-key")
+    client.produce(test_data, "example-topic", "test-key")

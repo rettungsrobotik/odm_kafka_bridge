@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from odm_client import ODMClient
-from kafka_producer import KafkaProducer
+from kafka_client import KafkaClient
 
 from base64 import b64encode
 from sys import getsizeof
@@ -57,7 +57,7 @@ def run_bridge(
         _print_dbg("Authentication successful!")
 
         _print_dbg(f"Initializing Kafka producer @ {kafka_url}")
-        producer = KafkaProducer(kafka_url)
+        kafka = KafkaClient(kafka_url)
 
         # asset identification
         _print_dbg(f"Fetching project ID for {project_name}")
@@ -94,7 +94,7 @@ def run_bridge(
             _print_dbg(f"Size of encoded message: {msg_size}")
 
         _print_dbg(f"Producing message to {kafka_topic=} with {kafka_key=}")
-        producer.produce(message, topic=kafka_topic, key=kafka_key)
+        kafka.produce(message, topic=kafka_topic, key=kafka_key)
 
     except Exception as e:
         print(f"An error occured: {e}")
