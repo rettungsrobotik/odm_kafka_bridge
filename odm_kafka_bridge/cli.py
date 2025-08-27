@@ -35,6 +35,7 @@ def main():
     if not odm_username or not odm_password:
         raise EnvironmentError("Missing WebODM credentials. Please check .env file.")
 
+    # load Kafka authentication if configured
     kafka_username, kafka_password, kafka_ssl_key_pw = None, None, None
     if config["kafka"].get("auth") is not None:
         kafka_username = os.getenv("KAFKA_USERNAME")
@@ -57,8 +58,8 @@ def main():
         )
     except Exception as e:
         log.error(f"{e}")
-
         if args.debug:
+            # auto-drop into debugger
             import pdb
 
             pdb.post_mortem()
@@ -79,7 +80,7 @@ def parse_args() -> Namespace:
         type=Path,
         metavar="path",
         default=Path(__file__).parent / "config",
-        help="Path to configuration directory with config.toml and certificates (default: %(default)s)",
+        help="Path to configuration directory with config.toml (default: %(default)s)",
     )
     parser.add_argument(
         "--debug",
@@ -96,7 +97,7 @@ def load_config(path: Path) -> dict[str, Any]:
     Loads configuration parameters from TOML file.
 
     Args:
-        path (pathlib.Path): Path to config.toml
+        path: Path to config.toml
 
     Returns:
         Configuration parameters.

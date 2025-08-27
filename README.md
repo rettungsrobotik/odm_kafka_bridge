@@ -1,9 +1,25 @@
-# CREXDATA WebODM<->Kafka Bridge
+# CREXDATA WebODM→Kafka Bridge
 
-This project implements a bridge that downloads "Digital Surface Models" (DSMs) from WebODM via its REST API, and pushes them to Apache Kafka topics.
+This project implements a bridge between a WebODM instance and an Apache Kafka cluster. 
+It finds and downloads assets from a given ODM project, such as "Digital Surface Models" (DSMs), and pushes them to a given Kafka topic.
 
-## Requirements
+Workflow:
+1. Load config.toml and SSL certificates.
+2. Authenticate with WebODM and Kafka servers.
+3. Search for a project by the configured name.
+4. Get the newest task within this project that has the desired asset (e.g., `dsm.tif`).
+5. Download asset and push it to Kafka.
 
+The Kafka messages are JSON-formatted:
+```javascript
+message = {
+        "project_name": str,
+        "project_id": int,
+        "task_id": uuid,
+        "asset_name": str,
+        "asset": bytes,
+}
+```
 
 ## Getting Started
 
@@ -15,9 +31,10 @@ Python >= 3.8 required.
 pip install -r requirements.txt
 ```
 
-### 2. Prepare authentication certificates
+### 2. Prepare authentication
 
 The keys provided by the CREXDATA server admins (`kafka.truststore.jks` and `kafka.keystore.jks`) must be converted to `.key` and `.crt` files to be compatible with `confluent_kafka`.
+Put these files into the [odm_kafka_bridge/config](odm_kafka_bridge/config) folder.
 
 ```bash
 # Export CA certificate from truststore to intermediate PKCS12 format
@@ -45,7 +62,7 @@ openssl pkcs12 -in keystore.p12 -nokeys -out config/kafka_client.crt
 * Edit [config.toml](odm_kafka_bridge/config/config.toml) to set server URLs, ODM project name, Kafka topic name, etc.
 * Copy [example.env](odm_kafka_bridge/config/example.env) to `config/.env` and fill in your credentials for WebODM, Kafka, and Kafka client SSL certificate.
 
-### 3. Run
+### 4. Run
 
 This repository provides a commandline interface (CLI). Check the usage available options with:
 
@@ -67,4 +84,5 @@ A local Kafka cluster for testing can be spun up using docker:
 docker compose -f tests/docker-compose.yml up
 ```
 
+Note: 
 

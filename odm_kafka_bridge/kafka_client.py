@@ -39,6 +39,8 @@ class KafkaClient:
         self.log.setLevel(log_lvl)
 
         url = config["kafka"]["url"]
+        self.log.debug(f"Connecting to Kafka @ {url}")
+
         producer_conf = {
             "bootstrap.servers": config["kafka"]["url"],
             "message.max.bytes": 104857600,  # 100 MiB
@@ -78,7 +80,6 @@ class KafkaClient:
         else:
             self.log.info("No authentication configured")
 
-        self.log.debug(f"Connecting to Kafka @ {url}")
         self.producer = Producer(producer_conf)
         return
 
@@ -104,7 +105,7 @@ class KafkaClient:
         except Exception as e:
             raise RuntimeError(f"Kafka connection verification failed: {e}")
 
-        self.log.info(f"KafkaClient connected")
+        self.log.info(f"Connected")
 
     def produce(self, data: dict, topic: str, key: str) -> None:
         """
