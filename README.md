@@ -4,22 +4,14 @@ This project implements a bridge between a WebODM instance and an Apache Kafka c
 It finds and downloads assets from a given ODM project, such as "Digital Surface Models" (DSMs), and pushes them to a given Kafka topic.
 
 Workflow:
-1. Load config.toml and SSL certificates.
-2. Authenticate with WebODM and Kafka servers.
-3. Search for a project by the configured name.
-4. Get the newest task within this project that has the desired asset (e.g., `dsm.tif`).
-5. Download asset and push it to Kafka.
+1. Load config.toml.
+2. If the config has a kafka.auth block, also load SSL certificates.
+3. Authenticate with WebODM and Kafka servers.
+4. Get the id of a project that is specified by its name in the config.
+5. Get the newest task within this project that has the desired asset (e.g., `dsm.tif`).
+6. Download asset and push it to Kafka.
 
-The Kafka messages are JSON-formatted:
-```javascript
-message = {
-        "project_name": str,
-        "project_id": int,
-        "task_id": uuid,
-        "asset_name": str,
-        "asset": bytes,
-}
-```
+The asset will be produced to Kafka in raw byte form with headers containing `project_name`, `project_id`, `task_id`, and `asset_name`.
 
 ## Getting Started
 
@@ -67,7 +59,8 @@ openssl pkcs12 -in keystore.p12 -nokeys -out config/kafka_client.crt
 This repository provides a commandline interface (CLI). Check the usage available options with:
 
 ```bash
-cli.py --help
+cd odm_kafka_bridge/odm_kafka_bridge
+./cli.py --help
 ```
 
 ## Development
@@ -78,11 +71,10 @@ The core module in [odm_kafka_bridge](odm_kafka_bridge) can be imported by other
 from odm_kafka_bridge import run_bridge
 ```
 
-A local Kafka cluster for testing can be spun up using docker:
+A local Kafka cluster for testing can be spun up using docker.
+*NOTE* This does not require authentication, so remove the `kafka.auth` block from `config.toml`.
 
 ```bash
 docker compose -f tests/docker-compose.yml up
 ```
-
-Note: 
 

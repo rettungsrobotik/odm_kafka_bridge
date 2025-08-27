@@ -35,7 +35,7 @@ def main():
     if not odm_username or not odm_password:
         raise EnvironmentError("Missing WebODM credentials. Please check .env file.")
 
-    # load Kafka authentication if configured
+    # load Kafka credentials if authentication configured
     kafka_username, kafka_password, kafka_ssl_key_pw = None, None, None
     if config["kafka"].get("auth") is not None:
         kafka_username = os.getenv("KAFKA_USERNAME")
@@ -43,8 +43,6 @@ def main():
         kafka_ssl_key_pw = os.getenv("KAFKA_SSL_KEY_PASSWORD")
         if not kafka_username or not kafka_password or not kafka_ssl_key_pw:
             raise EnvironmentError("Missing Kafka credentials. Please check .env file.")
-    else:
-        log.info("No Kafka authentication configured")
 
     try:
         run_bridge(
@@ -59,9 +57,9 @@ def main():
     except Exception as e:
         log.error(f"{e}")
         if args.debug:
-            # auto-drop into debugger
             import pdb
 
+            # auto-drop into debugger
             pdb.post_mortem()
 
 
@@ -83,6 +81,7 @@ def parse_args() -> Namespace:
         help="Path to configuration directory with config.toml (default: %(default)s)",
     )
     parser.add_argument(
+        "-d",
         "--debug",
         action="store_true",
         default=False,

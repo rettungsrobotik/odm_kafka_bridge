@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 from confluent_kafka import Message, Producer
+from io import BytesIO
 import logging
-import json
 from pathlib import Path
 from typing import Optional
 
@@ -107,12 +107,15 @@ class KafkaClient:
 
         self.log.info(f"Connected")
 
-    def produce(self, data: dict, topic: str, key: str) -> None:
+    def produce(
+        self, asset: BytesIO, headers: list[tuple], topic: str, key: str
+    ) -> None:
         """
         Sends a message to a Kafka topic.
 
         Args:
-            data: a dict of the data to send.
+            asset: Raw asset bytes to send.
+            headers: Structured metadata, e.g. project name and task id.
             topic: name of the Kakfa topic to send the data to.
             key: key of the message (used by Kafka to assign partition, ensure ordering).
         """
@@ -121,7 +124,8 @@ class KafkaClient:
         self.producer.produce(
             topic=topic,
             key=key,
-            value=json.dumps(data),
+            value=asset.read(),
+            headers=headers,
             callback=self.callback,
         )
         self.producer.flush()

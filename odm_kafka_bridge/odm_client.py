@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
+from io import BytesIO
 from json import loads
 import logging
 import requests
-from tempfile import TemporaryFile
 from typing import Optional
 
 
@@ -111,7 +111,7 @@ class ODMClient:
             Optional[str]: Task ID if available, else None.
         """
 
-        self.log.debug(f"Fetching tasks for {project_id} that have {asset_name=}")
+        self.log.debug(f"Fetching tasks for {project_id=} that have {asset_name=}")
         url = f"{self.base_url}/api/projects/{project_id}/tasks"
         response = requests.get(url, headers=self._headers())
         response.raise_for_status()
@@ -125,9 +125,9 @@ class ODMClient:
 
         return None
 
-    def download_asset(self, project_id: int, task_id: str, asset_name: str):
+    def download_asset(self, project_id: int, task_id: str, asset_name: str) -> BytesIO:
         """
-        Download a specific asset from a task.
+        Download an asset (e.g., DSM) from a task.
 
         Args:
             project_id: Project ID.
@@ -135,7 +135,7 @@ class ODMClient:
             asset_name: Name of the asset to download.
 
         Returns:
-            tempfile.TemporaryFile file descriptor.
+            Asset in byte-form.
         """
 
         self.log.info(f"Downloading {asset_name} from {task_id=}")
@@ -143,8 +143,8 @@ class ODMClient:
         response = requests.get(url, headers=self._headers(), stream=True)
         response.raise_for_status()
 
-        tmp_file = TemporaryFile()
+        buffer = BytesIO()
         for chunk in response.iter_content(chunk_size=8192):
-            tmp_file.write(chunk)
-
-        return tmp_file
+            buffer.write(chunk)
+        buffer.seek(0)
+        return buffer
