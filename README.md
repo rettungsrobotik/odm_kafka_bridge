@@ -78,3 +78,8 @@ A local Kafka cluster for testing can be spun up using docker.
 docker compose -f tests/docker-compose.yml up
 ```
 
+### Possible extensions and improvements
+
+* Monitor mode — check for newer tasks in regular intervals
+* Relay multiple assets in one go (e.g., DSM and orthophoto and 3D model)
+* Two-way bridge — receive drone survey images from Kafka and use them to create a new WebODM task

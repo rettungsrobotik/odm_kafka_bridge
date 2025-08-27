@@ -118,10 +118,12 @@ class ODMClient:
 
         resp_json = response.json()
         for task in reversed(resp_json):  # Most recent last
-            if asset_name in task.get("available_assets", []):
-                id = task["id"]
+            id = task["id"]
+            available_assets = task.get("available_assets", [])
+            self.log.debug(f"Assets available for task {id}: {available_assets}")
+            if asset_name in available_assets:
                 self.log.debug(f"Found task with {id=}")
-                return task["id"]
+                return id
 
         return None
 
