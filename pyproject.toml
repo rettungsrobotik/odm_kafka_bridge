@@ -1,7 +1,7 @@
 [project]
-name = "odm_kafka-bridge"
+name = "odm-kafka-bridge"
 version = "1.0.0"
-description = "A bridge that extracts an asset from WebODM and streams it into Kafka"
+description = "A bridge that extracts an asset from WebODM and streams it into Kafka."
 authors = [
 	{ name="Merlin Stampa", email="merlin.stampa@rettungsrobotik.de" }
 ]
@@ -21,9 +21,14 @@ dependencies = [
 [project.scripts]
 odm-kafka-bridge = "odm_kafka_bridge.cli:main"
 
+[project.urls]
+Homepage = "https://crexdata.eu"
+Issues = "https://github.com/rettungsrobotik/odm_kafka_bridge/issues"
+
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
+package-dir = { "" = "src" }
 packages = ["odm_kafka_bridge"]

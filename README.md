@@ -74,7 +74,7 @@ odm-kafka-bridge --help
 
 ## Development
 
-The core module in [odm_kafka_bridge](odm_kafka_bridge) can be imported by other projects:
+The core module in [src/odm_kafka_bridge](src/odm_kafka_bridge) can be imported by other projects:
 
 ```python
 from odm_kafka_bridge import run_bridge
