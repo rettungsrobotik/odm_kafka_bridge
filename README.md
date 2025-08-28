@@ -77,7 +77,7 @@ odm-kafka-bridge --help
 The core module in [src/odm_kafka_bridge](src/odm_kafka_bridge) can be imported by other projects:
 
 ```python
-from odm_kafka_bridge import run_bridge
+from odm_kafka_bridge.bridge import run_bridge
 ```
 
 A local Kafka cluster for testing can be spun up using docker compose:
