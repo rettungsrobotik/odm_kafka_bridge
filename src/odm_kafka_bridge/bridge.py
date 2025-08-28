@@ -73,7 +73,7 @@ def run_bridge(
     # Prepare WebODM client
     odm_url = config["webodm"]["url"]
     project_name = config["webodm"]["project"]
-    asset_name = config["webodm"].get("asset", "dsm.tif")
+    asset_name = config["webodm"]["asset"]
     odm = ODMClient(odm_url, odm_user, odm_password, debug)
     odm.authenticate()
 
@@ -94,7 +94,7 @@ def run_bridge(
     try:
         while not shutdown:
 
-            log.info(f"Checking for new tasks with asset '{asset_name}'")
+            log.info(f"Getting latest task with asset '{asset_name}'")
             task_id = odm.get_latest_task_with_asset(project_id, asset_name)
 
             if not task_id:
