@@ -42,11 +42,11 @@ class KafkaClient:
         log_lvl = logging.DEBUG if debug else logging.INFO
         self.log.setLevel(log_lvl)
 
-        url = config["kafka"]["url"]
-        self.log.debug(f"Connecting to Kafka @ {url}")
+        self.url = config["kafka"]["url"]
+        self.log.debug(f"Connecting to Kafka @ {self.url}")
 
         producer_conf = {
-            "bootstrap.servers": config["kafka"]["url"],
+            "bootstrap.servers": self.url,
             "message.max.bytes": 104857600,  # 100 MiB
             "socket.timeout.ms": 30000,  # 30sec
             "message.timeout.ms": 30000,
@@ -114,7 +114,7 @@ class KafkaClient:
         except Exception as e:
             raise RuntimeError(f"Kafka connection verification failed: {e}")
 
-        self.log.info(f"Connected and authenticated")
+        self.log.info(f"Connected and authenticated @ {self.url}")
         return
 
     def produce(

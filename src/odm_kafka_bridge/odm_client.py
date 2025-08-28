@@ -62,7 +62,7 @@ class ODMClient:
         response_text = response.text
         response.raise_for_status()
         self.token = loads(response_text)["token"]
-        self.log.info("Connected and authenticated")
+        self.log.info(f"Connected and authenticated @ {self.base_url}")
 
         return
 

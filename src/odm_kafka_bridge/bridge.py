@@ -11,6 +11,8 @@ from sys import getsizeof
 from time import sleep
 from typing import Optional
 
+shutdown = False  # global flag set by signal handlers
+
 
 def run_bridge(
     config: dict,
@@ -44,11 +46,14 @@ def run_bridge(
     log.setLevel(log_lvl)
 
     # Register signal handlers
-    shutdown = False
 
     def handle_signal(signum, _):
         """
         Handles system signals for graceful shutdowns.
+
+        Note: Kafka producer does not seem to react to this properly, so shutdown will
+        happen after the message callback. This can take a moment, especially if an
+        error occured.
 
         Args:
             signum: Signal number
@@ -123,7 +128,6 @@ def run_bridge(
                     if shutdown:
                         break
                     sleep(1)
-                    continue
             else:
                 break
 
