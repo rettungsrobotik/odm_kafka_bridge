@@ -1,3 +1,6 @@
+[bridge]
+monitor_interval_sec = 60 # (int) set to <= 0 or remove for oneshot mode
+
 [webodm]
 url = "https://webodm.rettungsrobotik.de"
 project = "CREXDATA Trials"

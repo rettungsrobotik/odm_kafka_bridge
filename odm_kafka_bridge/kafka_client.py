@@ -106,6 +106,7 @@ class KafkaClient:
             raise RuntimeError(f"Kafka connection verification failed: {e}")
 
         self.log.info(f"Connected")
+        return
 
     def produce(
         self, asset: BytesIO, headers: list[tuple], topic: str, key: str
@@ -138,10 +139,14 @@ class KafkaClient:
         Args:
             err: error message
             msg: normal message
+
+        Raises:
+            RuntimeError
         """
         if err:
-            self.log.error(f"{err}")
+            self.log.error("An error occured while sending the message to Kafka!")
+            raise RuntimeError(f"{err}")
         else:
-            self.log.info(f"Message sent successfully to {msg.topic()}")
+            self.log.info(f"Message sent successfully to Kafka topic {msg.topic()}")
 
         return

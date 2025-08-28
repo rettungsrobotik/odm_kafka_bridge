@@ -79,6 +79,9 @@ class ODMClient:
 
         Returns:
             int: The project ID.
+
+        Raises:
+            ValueError if no project found.
         """
 
         self.log.debug(f"Fetching project ID for {project_name}")
@@ -90,11 +93,10 @@ class ODMClient:
 
         resp_json = response.json()
         if not resp_json:
-            raise ValueError(f"No project found with name: {project_name}")
+            raise ValueError(f"No project found with name '{project_name}'")
 
         id = resp_json[0]["id"]
-        self.log.debug(f"Got project ID: {id}")
-
+        self.log.info(f"Found ID '{id}' for project name '{project_name}'")
         return id
 
     def get_latest_task_with_asset(
@@ -111,7 +113,6 @@ class ODMClient:
             Optional[str]: Task ID if available, else None.
         """
 
-        self.log.debug(f"Fetching tasks for {project_id=} that have {asset_name=}")
         url = f"{self.base_url}/api/projects/{project_id}/tasks"
         response = requests.get(url, headers=self._headers())
         response.raise_for_status()
@@ -120,9 +121,7 @@ class ODMClient:
         for task in reversed(resp_json):  # Most recent last
             id = task["id"]
             available_assets = task.get("available_assets", [])
-            self.log.debug(f"Assets available for task {id}: {available_assets}")
             if asset_name in available_assets:
-                self.log.debug(f"Found task with {id=}")
                 return id
 
         return None
@@ -140,7 +139,6 @@ class ODMClient:
             Asset in byte-form.
         """
 
-        self.log.info(f"Downloading {asset_name} from {task_id=}")
         url = f"{self.base_url}/api/projects/{project_id}/tasks/{task_id}/download/{asset_name}"
         response = requests.get(url, headers=self._headers(), stream=True)
         response.raise_for_status()

@@ -1,15 +1,15 @@
-# CREXDATA WebODM→Kafka Bridge
+# CREXDATA ODM→Kafka Bridge
 
-This project implements a bridge between a WebODM instance and an Apache Kafka cluster. 
-It finds and downloads assets from a given ODM project, such as "Digital Surface Models" (DSMs), and pushes them to a given Kafka topic.
+This Python project finds and downloads assets from an Open Drone Map (ODM) project,
+such as "Digital Surface Models" (DSMs), and pushes them to an Apache Kafka topic.
 
 Workflow:
-1. Load config.toml.
-2. If the config has a kafka.auth block, also load SSL certificates.
-3. Authenticate with WebODM and Kafka servers.
-4. Get the id of a project that is specified by its name in the config.
-5. Get the newest task within this project that has the desired asset (e.g., `dsm.tif`).
-6. Download asset and push it to Kafka.
+1. Load configuration from TOML file. If the config has a kafka.auth block, also load SSL certificates.
+2. Connect and authenticate to WebODM and Kafka servers.
+3. Determine WebODM project id of the configured project name.
+4. Get the newest task within the project that has the desired asset (e.g., `dsm.tif`).
+5. Download asset and push it to Kafka.
+6. Wait bridge.monitor_interval_sec (if set) and repeat steps 4+5 until the program is terminated.
 
 The asset will be produced to Kafka in raw byte form with headers containing `project_name`, `project_id`, `task_id`, and `asset_name`.
 
@@ -25,8 +25,11 @@ pip install -r requirements.txt
 
 ### 2. Prepare authentication
 
-The keys provided by the CREXDATA server admins (`kafka.truststore.jks` and `kafka.keystore.jks`) must be converted to `.key` and `.crt` files to be compatible with `confluent_kafka`.
-Put these files into the [odm_kafka_bridge/config](odm_kafka_bridge/config) folder.
+#### Convert provided Kafka keys and certificates
+
+The `.jks` files provided by the CREXDATA server admins (`kafka.truststore.jks` and `kafka.keystore.jks`)
+must be converted to `.key` and `.crt` files to be compatible with `confluent_kafka`.
+Put these files into the [config](config) folder, next to `config.toml`.
 
 ```bash
 # Export CA certificate from truststore to intermediate PKCS12 format
@@ -49,15 +52,15 @@ openssl pkcs12 -in keystore.p12 -nocerts -nodes -out config/kafka_client.key
 openssl pkcs12 -in keystore.p12 -nokeys -out config/kafka_client.crt
 ```
 
-### 3. Edit configuration and prepare .env
+#### Put credentials into dotenv
 
-* Edit [config.toml](odm_kafka_bridge/config/config.toml) to set server URLs, ODM project name, Kafka topic name, etc.
-* Copy [example.env](odm_kafka_bridge/config/example.env) to `config/.env` and fill in your credentials for WebODM, Kafka, and Kafka client SSL certificate.
+Copy [config/example.env](config/example.env) to `config/.env` and fill in the required username and password fields.
 
-### 4. Run
+### 3. Run
 
-This repository provides a commandline interface (CLI). Check the usage available options with:
+Edit [config/config.toml](config/config.toml) to set server URLs, ODM project name, Kafka topic name, etc.
 
+Then, run the command line interface (CLI). Check the available options with:
 ```bash
 cd odm_kafka_bridge/odm_kafka_bridge
 ./cli.py --help
@@ -75,11 +78,13 @@ A local Kafka cluster for testing can be spun up using docker.
 *NOTE* This does not require authentication, so remove the `kafka.auth` block from `config.toml`.
 
 ```bash
-docker compose -f tests/docker-compose.yml up
+docker compose -f test/docker-compose.yml up
 ```
 
 ### Possible extensions and improvements
 
-* Monitor mode — check for newer tasks in regular intervals
-* Relay multiple assets in one go (e.g., DSM and orthophoto and 3D model)
-* Two-way bridge — receive drone survey images from Kafka and use them to create a new WebODM task
+* Include timestamps in Kafka message headers
+* Relay multiple assets in one go (e.g., DSM and orthophoto and 3D model).
+* Two-way bridge — receive drone survey images from Kafka and use them to create a new WebODM task.
+* Systemd wrapper
+* Unit tests

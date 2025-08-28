@@ -15,18 +15,17 @@ def main():
 
     args = parse_args()
 
-    # load configuration fom toml file
+    # Load configuration fom toml file
     config = load_config(args.config / "config.toml")
 
-    # configure logger
+    # Configure logger
     log_fmt = "[{asctime}] [{levelname}] [{name}] {message}"
     logging.basicConfig(format=log_fmt, style="{")
     log = logging.getLogger("cli")
     log_lvl = logging.DEBUG if args.debug else logging.INFO
     log.setLevel(log_lvl)
-    log.info("Starting WebODM->Kafka bridge")
 
-    # load ODM credentials from .env
+    # Load ODM credentials from .env
     dotenv_path = args.config / ".env"
     log.debug(f"Loading credentials from {dotenv_path}")
     load_dotenv(dotenv_path)
@@ -35,7 +34,7 @@ def main():
     if not odm_username or not odm_password:
         raise EnvironmentError("Missing WebODM credentials. Please check .env file.")
 
-    # load Kafka credentials if authentication configured
+    # Load Kafka credentials if authentication configured
     kafka_username, kafka_password, kafka_ssl_key_pw = None, None, None
     if config["kafka"].get("auth") is not None:
         kafka_username = os.getenv("KAFKA_USERNAME")
@@ -71,14 +70,14 @@ def parse_args() -> Namespace:
         Namespace with parsed arguments
     """
 
-    parser = ArgumentParser(description="ODM to Kafka bridge CLI")
+    parser = ArgumentParser(description="ODM->Kafka bridge")
     parser.add_argument(
         "-c",
         "--config",
         type=Path,
         metavar="path",
-        default=Path(__file__).parent / "config",
-        help="Path to configuration directory with config.toml (default: %(default)s)",
+        default=Path(__file__).parent.parent / "config",
+        help="Path to directory with config.toml and certificates (default: %(default)s)",
     )
     parser.add_argument(
         "-d",
