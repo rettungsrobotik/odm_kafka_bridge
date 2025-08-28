@@ -1,9 +1,22 @@
 # CREXDATA ODM→Kafka Bridge
 
+- [CREXDATA ODM→Kafka Bridge](#crexdata-odmkafka-bridge)
+   * [Workflow](#workflow)
+   * [Message format](#message-format)
+- [Getting Started](#getting-started)
+   * [1. Install](#1-install)
+   * [2. Prepare authentication](#2-prepare-authentication)
+      + [Convert provided Kafka keys and certificates](#convert-provided-kafka-keys-and-certificates)
+      + [Put credentials into dotenv](#put-credentials-into-dotenv)
+   * [3. Run](#3-run)
+- [Development](#development)
+   * [Local testing](#local-testing)
+   * [Possible extensions and improvements](#possible-extensions-and-improvements)
+
 This Python project finds and downloads assets from an Open Drone Map (ODM) project,
 such as "Digital Surface Models" (DSMs), and pushes them to an Apache Kafka topic.
 
-*Workflow*
+## Workflow
 1. Load configuration from `config.toml` and credentials from `.env`. If the config has a kafka.auth block, also load SSL certificates.
 2. Connect and authenticate to WebODM and Kafka servers.
 3. Determine WebODM project id of the configured project name.
@@ -11,7 +24,7 @@ such as "Digital Surface Models" (DSMs), and pushes them to an Apache Kafka topi
 5. Download asset and push it to Kafka.
 6. Wait bridge.monitor_interval_sec (if set) and repeat steps 4+5 until the program is terminated.
 
-*Message format*
+## Message format
 
 The asset will be produced to Kafka in raw byte form.
 The *headers* will contain:
@@ -20,9 +33,9 @@ The *headers* will contain:
 * `task_id`
 * `asset_name`
 
-## Getting Started
+# Getting Started
 
-### 1. Install
+## 1. Install
 
 Python >= 3.10 required.
 
@@ -33,9 +46,9 @@ cd <project root>
 pip install .
 ```
 
-### 2. Prepare authentication
+## 2. Prepare authentication
 
-#### Convert provided Kafka keys and certificates
+### Convert provided Kafka keys and certificates
 
 The `.jks` files provided by the CREXDATA server admins (`kafka.truststore.jks` and `kafka.keystore.jks`)
 must be converted to `.key` and `.crt` files to be compatible with `confluent_kafka`.
@@ -61,11 +74,11 @@ openssl pkcs12 -in keystore.p12 -nocerts -nodes -out config/kafka_client.key
 openssl pkcs12 -in keystore.p12 -nokeys -out config/kafka_client.crt
 ```
 
-#### Put credentials into dotenv
+### Put credentials into dotenv
 
 Copy [config/example.env](config/example.env) to `config/.env` and fill in the required username and password fields.
 
-### 3. Run
+## 3. Run
 
 Edit [config/config.toml](config/config.toml) to set server URLs, ODM project name, Kafka topic name, certificate paths etc.
 
@@ -96,7 +109,7 @@ Example console output:
 [2025-08-28 15:01:30,336] [INFO] [kafka] Message sent successfully to Kafka topic UPB-CREXDATA-RealtimeDEM-Stream
 ```
 
-## Development
+# Development
 
 The core module in [src/odm_kafka_bridge](src/odm_kafka_bridge) can be imported by other projects:
 
@@ -104,14 +117,16 @@ The core module in [src/odm_kafka_bridge](src/odm_kafka_bridge) can be imported 
 from odm_kafka_bridge.bridge import run_bridge
 ```
 
-A local Kafka cluster for testing can be spun up using docker compose.
+## Local testing
+
+A Kafka cluster for testing can be spun up on localhost using docker compose.
 Set `kafka.url` in `config.toml` to `localhost:9092` and remove the `kafka.auth` block since it does not require authentication.
 
 ```bash
 docker compose -f test/docker-compose.yml up
 ```
 
-### Possible extensions and improvements
+## Possible extensions and improvements
 
 * Include timestamps in Kafka message headers
 * Relay multiple assets in one go (e.g., DSM and orthophoto and 3D model).
