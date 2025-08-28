@@ -32,6 +32,10 @@ class KafkaClient:
             password: optional SASL password
             ssl_pwd: optional SSL certificate password
             debug: Enable debug output
+
+        Raises:
+            AssertionError
+            RuntimeError
         """
 
         self.log = logging.getLogger("kafka")
@@ -52,13 +56,18 @@ class KafkaClient:
 
         kafka_auth = config["kafka"].get("auth", None)
         if kafka_auth is not None:
-            assert username is not None and username != ""
-            assert password is not None and password != ""
-            assert ssl_pwd is not None and ssl_pwd != ""
+            assert username is not None and username != "", "Kafka username required!"
+            assert password is not None and password != "", "Kafka password required!"
+            assert (
+                ssl_pwd is not None and ssl_pwd != ""
+            ), "Kafka SSL key password required!"
 
             # Locate certificates
-            cert_dir = Path(kafka_auth["cert_dir"])
-            assert cert_dir.exists()
+            cert_dir = Path(kafka_auth["cert_dir"]).resolve()
+            self.log.info(f"Loading SSL keys and certificates from {cert_dir}")
+            if not cert_dir.exists() or not cert_dir.is_dir():
+                raise RuntimeError(f"{cert_dir} does not exist or is not a directory!")
+
             path_ca = cert_dir / Path(kafka_auth["ca"])
             path_crt = cert_dir / Path(kafka_auth["client_crt"])
             path_key = cert_dir / Path(kafka_auth["client_key"])
@@ -66,7 +75,7 @@ class KafkaClient:
             self.log.debug(f"Loading client certificate from: {path_crt}")
             self.log.debug(f"Loading client key from: {path_key}")
             for p in [path_ca, path_crt, path_key]:
-                assert p.exists(), "Kafka SSL certificate missing"
+                assert p.exists(), f"Kafka SSL key or certificate missing"
 
             # Append auth info to producer configuration
             producer_conf["security.protocol"] = "SASL_SSL"
@@ -105,7 +114,7 @@ class KafkaClient:
         except Exception as e:
             raise RuntimeError(f"Kafka connection verification failed: {e}")
 
-        self.log.info(f"Connected")
+        self.log.info(f"Connected and authenticated")
         return
 
     def produce(

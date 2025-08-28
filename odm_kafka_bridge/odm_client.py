@@ -46,7 +46,10 @@ class ODMClient:
         Authenticate with the server and store the JWT token.
 
         NOTE: for security reasons, it is recommended to use a dedicated user with
-        minimal permissions.
+        minimal read-only permissions.
+
+        Raises
+            HTTPError
         """
 
         self.log.debug(f"Trying to authenticate {self.username} @ {self.base_url}")
@@ -59,7 +62,7 @@ class ODMClient:
         response_text = response.text
         response.raise_for_status()
         self.token = loads(response_text)["token"]
-        self.log.info("Authenticated")
+        self.log.info("Connected and authenticated")
 
         return
 

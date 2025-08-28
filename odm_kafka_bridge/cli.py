@@ -15,9 +15,6 @@ def main():
 
     args = parse_args()
 
-    # Load configuration fom toml file
-    config = load_config(args.config / "config.toml")
-
     # Configure logger
     log_fmt = "[{asctime}] [{levelname}] [{name}] {message}"
     logging.basicConfig(format=log_fmt, style="{")
@@ -25,23 +22,30 @@ def main():
     log_lvl = logging.DEBUG if args.debug else logging.INFO
     log.setLevel(log_lvl)
 
+    # Load configuration fom toml file
+    toml_path = args.config / "config.toml"
+    log.info(f"Loading configuration from {toml_path}")
+    config = load_config(toml_path.resolve())
+
     # Load ODM credentials from .env
     dotenv_path = args.config / ".env"
-    log.debug(f"Loading credentials from {dotenv_path}")
+    log.info(f"Loading credentials from {dotenv_path}")
     load_dotenv(dotenv_path)
     odm_username = os.getenv("ODM_USERNAME")
     odm_password = os.getenv("ODM_PASSWORD")
     if not odm_username or not odm_password:
         raise EnvironmentError("Missing WebODM credentials. Please check .env file.")
 
-    # Load Kafka credentials if authentication configured
+    # Load Kafka SSL credentials if authentication configured
     kafka_username, kafka_password, kafka_ssl_key_pw = None, None, None
     if config["kafka"].get("auth") is not None:
         kafka_username = os.getenv("KAFKA_USERNAME")
         kafka_password = os.getenv("KAFKA_PASSWORD")
         kafka_ssl_key_pw = os.getenv("KAFKA_SSL_KEY_PASSWORD")
         if not kafka_username or not kafka_password or not kafka_ssl_key_pw:
-            raise EnvironmentError("Missing Kafka credentials. Please check .env file.")
+            raise EnvironmentError(
+                "Kafka authentication configured but credentials not found. Please check your .env."
+            )
 
     try:
         run_bridge(
@@ -71,20 +75,24 @@ def parse_args() -> Namespace:
     """
 
     parser = ArgumentParser(description="ODM->Kafka bridge")
+
+    # Required
     parser.add_argument(
         "-c",
         "--config",
         type=Path,
-        metavar="path",
-        default=Path(__file__).parent.parent / "config",
-        help="Path to directory with config.toml and certificates (default: %(default)s)",
+        metavar="dir",
+        required=True,
+        help="Path to directory containing config.toml and .env",
     )
+
+    # Optional
     parser.add_argument(
         "-d",
         "--debug",
         action="store_true",
         default=False,
-        help="Enable debug mode (default: %(default)s).\
+        help="(optional) Enable debug mode (default: %(default)s).\
         Increases verbosity and automatically drops into a debugger if an error occured.",
     )
     return parser.parse_args()

@@ -13,7 +13,7 @@ key = "dsm.tif"
 
 # If the server does not use authentication, remove this block.
 [kafka.auth]
-cert_dir = "config" # use absolute path, or relative to cwd
+cert_dir = "config/certs" # absolute path, or relative to current working directory
 ca = "kafka_ca.crt"
 client_crt = "kafka_client.crt"
 client_key = "kafka_client.key"

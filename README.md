@@ -22,6 +22,7 @@ Python >= 3.10 required.
 Install the dependencies (see [pyproject.toml](pyproject.toml)) and the program itself with:
 
 ```bash
+cd <project root>
 pip install .
 ```
 
@@ -31,7 +32,6 @@ pip install .
 
 The `.jks` files provided by the CREXDATA server admins (`kafka.truststore.jks` and `kafka.keystore.jks`)
 must be converted to `.key` and `.crt` files to be compatible with `confluent_kafka`.
-Put these files into the [config](config) folder, next to `config.toml`.
 
 ```bash
 # Export CA certificate from truststore to intermediate PKCS12 format
@@ -60,7 +60,7 @@ Copy [config/example.env](config/example.env) to `config/.env` and fill in the r
 
 ### 3. Run
 
-Edit [config/config.toml](config/config.toml) to set server URLs, ODM project name, Kafka topic name, etc.
+Edit [config/config.toml](config/config.toml) to set server URLs, ODM project name, Kafka topic name, certificate paths etc.
 
 Then, run the command line interface (CLI).
 ```bash
@@ -72,7 +72,6 @@ Check available options (e.g., debug mode) with
 odm-kafka-bridge --help
 ```
 
-
 ## Development
 
 The core module in [odm_kafka_bridge](odm_kafka_bridge) can be imported by other projects:
@@ -81,13 +80,13 @@ The core module in [odm_kafka_bridge](odm_kafka_bridge) can be imported by other
 from odm_kafka_bridge import run_bridge
 ```
 
-A local Kafka cluster for testing can be spun up using docker.
-To communicate with it, set `kafka.url` to `localhost:9092` and outcomment the `kafka.auth` block
-since it does not require authentication.
+A local Kafka cluster for testing can be spun up using docker compose:
 
 ```bash
 docker compose -f test/docker-compose.yml up
 ```
+
+To communicate with it, set `kafka.url` in `config.toml` to `localhost:9092` and remove the `kafka.auth` block since it does not require authentication.
 
 ### Possible extensions and improvements
 
