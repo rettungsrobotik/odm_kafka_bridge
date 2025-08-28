@@ -15,12 +15,14 @@ The asset will be produced to Kafka in raw byte form with headers containing `pr
 
 ## Getting Started
 
-### 1. Install dependencies
+### 1. Install
 
-Python >= 3.8 required.
+Python >= 3.10 required.
+
+Install the dependencies (see [pyproject.toml](pyproject.toml)) and the program itself with:
 
 ```bash
-pip install -r requirements.txt
+pip install .
 ```
 
 ### 2. Prepare authentication
@@ -60,11 +62,16 @@ Copy [config/example.env](config/example.env) to `config/.env` and fill in the r
 
 Edit [config/config.toml](config/config.toml) to set server URLs, ODM project name, Kafka topic name, etc.
 
-Then, run the command line interface (CLI). Check the available options with:
+Then, run the command line interface (CLI).
 ```bash
-cd odm_kafka_bridge/odm_kafka_bridge
-./cli.py --help
+odm-kafka-bridge -c <path-to-config-dir>
 ```
+
+Check available options (e.g., debug mode) with
+```bash
+odm-kafka-bridge --help
+```
+
 
 ## Development
 
@@ -75,7 +82,8 @@ from odm_kafka_bridge import run_bridge
 ```
 
 A local Kafka cluster for testing can be spun up using docker.
-*NOTE* This does not require authentication, so remove the `kafka.auth` block from `config.toml`.
+To communicate with it, set `kafka.url` to `localhost:9092` and outcomment the `kafka.auth` block
+since it does not require authentication.
 
 ```bash
 docker compose -f test/docker-compose.yml up

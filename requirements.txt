@@ -1,6 +1,0 @@
-argparse
-confluent-kafka
-dotenv
-humanfriendly
-pathlib
-toml

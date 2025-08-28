@@ -1,0 +1,29 @@
+[project]
+name = "odm_kafka-bridge"
+version = "1.0.0"
+description = "A bridge that extracts an asset from WebODM and streams it into Kafka"
+authors = [
+	{ name="Merlin Stampa", email="merlin.stampa@rettungsrobotik.de" }
+]
+license = "MIT"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+	"argparse",
+	"confluent-kafka",
+	"humanfriendly",
+	"pathlib",
+	"python-dotenv",
+	"requests",
+	"toml",
+]
+
+[project.scripts]
+odm-kafka-bridge = "odm_kafka_bridge.cli:main"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["odm_kafka_bridge"]

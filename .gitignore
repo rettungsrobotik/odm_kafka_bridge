@@ -1,6 +1,3 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[codz]
 
 !odm_kafka_bridge/config/example.env
 
@@ -8,3 +5,12 @@ __pycache__/
 .env
 *.crt
 *.key
+
+# Byte-compiled / optimized / DLL files
+build/
+__pycache__/
+*.py[codz]
+
+# Packaging
+*.egg-info
+

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from bridge import run_bridge
+from odm_kafka_bridge.bridge import run_bridge
 
 from argparse import ArgumentParser, Namespace
 from dotenv import load_dotenv

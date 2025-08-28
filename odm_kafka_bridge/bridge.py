@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-from odm_client import ODMClient
-from kafka_client import KafkaClient
+from odm_kafka_bridge.odm_client import ODMClient
+from odm_kafka_bridge.kafka_client import KafkaClient
 
 from humanfriendly import format_size
 from io import BytesIO
@@ -102,9 +102,9 @@ def run_bridge(
                 old_task_id = task_id
 
                 # Download
-                log.info(f"Downloading asset {asset_name}")
+                log.info(f"Downloading asset {asset_name}...")
                 asset: BytesIO = odm.download_asset(project_id, task_id, asset_name)
-                log.debug(f"Downloaded {format_size(getsizeof(asset), binary=True)}")
+                log.info(f"Downloaded {format_size(getsizeof(asset), binary=True)}")
 
                 # Upload
                 headers = [
