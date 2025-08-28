@@ -5,11 +5,16 @@
 .env
 *.crt
 *.key
+*.jks
+*.p12
 
 # Byte-compiled / optimized / DLL files
 build/
-__pycache__/
 *.py[codz]
+
+# Caches
+__pycache__/
+.cache/
 
 # Packaging
 *.egg-info

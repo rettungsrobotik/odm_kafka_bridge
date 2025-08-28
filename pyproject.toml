@@ -5,7 +5,7 @@ description = "A bridge that extracts an asset from WebODM and streams it into K
 authors = [
 	{ name="Merlin Stampa", email="merlin.stampa@rettungsrobotik.de" }
 ]
-license = "MIT"
+license = "GPLv3.0"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
