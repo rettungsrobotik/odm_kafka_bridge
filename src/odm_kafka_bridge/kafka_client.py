@@ -114,7 +114,7 @@ class KafkaClient:
         except Exception as e:
             raise RuntimeError(f"Kafka connection verification failed: {e}")
 
-        self.log.info(f"Connected and authenticated @ {self.url}")
+        self.log.info(f"Connected to {self.url}")
         return
 
     def produce(
@@ -156,6 +156,6 @@ class KafkaClient:
             self.log.error("An error occured while sending the message to Kafka!")
             raise RuntimeError(f"{err}")
         else:
-            self.log.info(f"Message sent successfully to Kafka topic {msg.topic()}")
+            self.log.info(f"Message sent successfully to Kafka topic '{msg.topic()}'")
 
         return

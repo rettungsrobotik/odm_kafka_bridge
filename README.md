@@ -6,28 +6,33 @@
 - [Getting Started](#getting-started)
    * [1. Install](#1-install)
    * [2. Prepare authentication](#2-prepare-authentication)
-      + [Convert provided Kafka keys and certificates](#convert-provided-kafka-keys-and-certificates)
-      + [Put credentials into dotenv](#put-credentials-into-dotenv)
+      + [Convert Kafka keys and certificates](#convert-kafka-keys-and-certificates)
+      + [Store credentials](#store-credentials)
    * [3. Run](#3-run)
 - [Development](#development)
    * [Local testing](#local-testing)
    * [Possible extensions and improvements](#possible-extensions-and-improvements)
 
-This Python project finds and downloads assets from an Open Drone Map (ODM) project,
-such as "Digital Surface Models" (DSMs), and pushes them to an Apache Kafka topic.
+This Python project, developed in the context of the [CREXDATA](https://crexdata.eu) project,
+serves as a bridge between the DRZ' [Open Drone Map (ODM)](https://opendronemap.org) instance and the CREXDATA system,
+which is build on [Apache Kafka](https://kafka.apache.org/).
+It can download assets, such as Digital Surface Models (DSMs) from ODM and relay them to a Kafka topic.
 
 ## Workflow
-1. Load configuration from `config.toml` and credentials from `.env`. If the config has a kafka.auth block, also load SSL certificates.
-2. Connect and authenticate to WebODM and Kafka servers.
-3. Determine WebODM project id of the configured project name.
-4. Get the newest task within the project that has the desired asset (e.g., `dsm.tif`).
-5. Download asset and push it to Kafka.
-6. Wait bridge.monitor_interval_sec (if set) and repeat steps 4+5 until the program is terminated.
+
+The tool...
+
+1. Loads configuration from `config.toml` and credentials from `.env`. If the config has a kafka.auth block, it also loads SSL certificates.
+2. Connects to WebODM and Kafka servers.
+3. Determines WebODM project id of the configured project name.
+4. Gets the newest task within the project that has the desired asset (e.g., `dsm.tif`).
+5. Downloads the asset
+6. Produces a message containing the asset and headers to a Kafka topic.
+7. Repeats steps 4–6 in an endless loop. In the default configuration, the tool waits 60 seconds between iterations.
 
 ## Message format
 
-The asset will be produced to Kafka in raw byte form.
-The *headers* will contain:
+The asset will be produced to Kafka as a raw-byte stream. The headers contain:
 * `project_name`
 * `project_id`
 * `task_id`
@@ -38,7 +43,6 @@ The *headers* will contain:
 ## 1. Install
 
 Python >= 3.10 required.
-
 Install the dependencies (see [pyproject.toml](pyproject.toml)) and the program itself with:
 
 ```bash
@@ -48,7 +52,7 @@ pip install .
 
 ## 2. Prepare authentication
 
-### Convert provided Kafka keys and certificates
+### Convert Kafka keys and certificates
 
 The `.jks` files provided by the CREXDATA server admins (`kafka.truststore.jks` and `kafka.keystore.jks`)
 must be converted to `.key` and `.crt` files to be compatible with `confluent_kafka`.
@@ -69,14 +73,15 @@ keytool -importkeystore -srckeystore kafka.keystore.jks \
         -srcstorepass <keystore-password>
 
 # Convert from PKCS12
-openssl pkcs12 -in truststore.p12 -nokeys -out config/kafka_ca.crt
-openssl pkcs12 -in keystore.p12 -nocerts -nodes -out config/kafka_client.key
-openssl pkcs12 -in keystore.p12 -nokeys -out config/kafka_client.crt
+mkdir config/certs
+openssl pkcs12 -in truststore.p12 -nokeys -out config/certs/kafka_ca.crt
+openssl pkcs12 -in keystore.p12 -nocerts -nodes -out config/certs/kafka_client.key
+openssl pkcs12 -in keystore.p12 -nokeys -out config/certs/kafka_client.crt
 ```
 
-### Put credentials into dotenv
+### Store credentials
 
-Copy [config/example.env](config/example.env) to `config/.env` and fill in the required username and password fields.
+Copy [config/example.env](config/example.env) to `config/.env` and fill in the required username and password fields. The Kafka credentials may be omitted if the server does not require authentication.
 
 ## 3. Run
 
@@ -94,19 +99,22 @@ odm-kafka-bridge --help
 
 Example console output:
 ```
-[2025-08-28 15:01:26,051] [INFO] [cli] Loading configuration from config/config.toml
-[2025-08-28 15:01:26,052] [INFO] [cli] Loading credentials from config/.env
-[2025-08-28 15:01:26,052] [INFO] [kafka] No authentication configured
-[2025-08-28 15:01:26,109] [INFO] [kafka] Connected and authenticated @ localhost:9092
-[2025-08-28 15:01:26,303] [INFO] [odm] Connected and authenticated @ https://webodm.rettungsrobotik.de
-[2025-08-28 15:01:26,303] [INFO] [bridge] Starting ODM->Kafka bridge
-[2025-08-28 15:01:26,304] [INFO] [bridge] Monitoring for fresh assets every 60s
-[2025-08-28 15:01:26,462] [INFO] [odm] Found ID '5' for project name 'CREXDATA Trials'
-[2025-08-28 15:01:26,462] [INFO] [bridge] Checking for new tasks with asset 'dsm.tif'
-[2025-08-28 15:01:26,607] [INFO] [bridge] Found task a7cdd3c7-7a9a-4f1e-abc1-7853eff50c65
-[2025-08-28 15:01:26,607] [INFO] [bridge] Downloading asset dsm.tif...
-[2025-08-28 15:01:30,254] [INFO] [bridge] Downloaded 26.43 MiB
-[2025-08-28 15:01:30,336] [INFO] [kafka] Message sent successfully to Kafka topic UPB-CREXDATA-RealtimeDEM-Stream
+[2025-09-03 12:02:04,135] [INFO] [cli] Loading configuration from config/config.toml
+[2025-09-03 12:02:04,135] [INFO] [cli] Loading credentials from config/.env
+[2025-09-03 12:02:04,136] [INFO] [kafka] Loading SSL keys and certificates from /home/merlin/work/odm_kafka_bridge/config/certs
+[2025-09-03 12:02:04,260] [INFO] [kafka] Connected to server.crexdata.eu:9092
+[2025-09-03 12:02:04,482] [INFO] [odm] Connected to https://webodm.rettungsrobotik.de
+[2025-09-03 12:02:04,482] [INFO] [bridge] Starting ODM->Kafka bridge
+[2025-09-03 12:02:04,482] [INFO] [bridge] Will check for fresh assets every 60s
+[2025-09-03 12:02:04,672] [INFO] [odm] Found ID '5' for project name 'CREXDATA Trials'
+[2025-09-03 12:02:04,673] [INFO] [odm] Getting latest task with asset 'dsm.tif'
+[2025-09-03 12:02:04,832] [INFO] [odm] Found task 'a7cdd3c7-7a9a-4f1e-abc1-7853eff50c65'
+[2025-09-03 12:02:04,832] [INFO] [odm] Downloading asset 'dsm.tif' ...
+[2025-09-03 12:02:11,480] [INFO] [odm] Downloaded 26.43 MiB
+[2025-09-03 12:02:13,358] [INFO] [kafka] Message sent successfully to Kafka topic 'UPB-CREXDATA-RealtimeDEM-Stream'
+[2025-09-03 12:03:13,372] [INFO] [odm] Getting latest task with asset 'dsm.tif'
+[2025-09-03 12:03:13,532] [INFO] [odm] Found task 'a7cdd3c7-7a9a-4f1e-abc1-7853eff50c65'
+[2025-09-03 12:03:13,533] [INFO] [bridge] It's the same task as last time, going back to sleep
 ```
 
 # Development
@@ -132,4 +140,3 @@ docker compose -f test/docker-compose.yml up
 * Relay multiple assets in one go (e.g., DSM and orthophoto and 3D model).
 * Two-way bridge — receive drone survey images from Kafka and use them to create a new WebODM task.
 * Systemd wrapper
-* Unit tests

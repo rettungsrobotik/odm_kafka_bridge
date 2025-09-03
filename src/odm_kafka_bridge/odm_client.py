@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 
+from humanfriendly import format_size
 from io import BytesIO
 from json import loads
 import logging
 import requests
+from sys import getsizeof
 from typing import Optional
 
 
@@ -62,7 +64,7 @@ class ODMClient:
         response_text = response.text
         response.raise_for_status()
         self.token = loads(response_text)["token"]
-        self.log.info(f"Connected and authenticated @ {self.base_url}")
+        self.log.info(f"Connected to {self.base_url}")
 
         return
 
@@ -116,6 +118,7 @@ class ODMClient:
             Optional[str]: Task ID if available, else None.
         """
 
+        self.log.info(f"Getting latest task with asset '{asset_name}'")
         url = f"{self.base_url}/api/projects/{project_id}/tasks"
         response = requests.get(url, headers=self._headers())
         response.raise_for_status()
@@ -125,8 +128,10 @@ class ODMClient:
             id = task["id"]
             available_assets = task.get("available_assets", [])
             if asset_name in available_assets:
+                self.log.info(f"Found task '{id}'")
                 return id
 
+        self.log.warning(f"No task with asset '{asset_name}' found!")
         return None
 
     def download_asset(self, project_id: int, task_id: str, asset_name: str) -> BytesIO:
@@ -142,6 +147,7 @@ class ODMClient:
             Asset in byte-form.
         """
 
+        self.log.info(f"Downloading asset '{asset_name}' ...")
         url = f"{self.base_url}/api/projects/{project_id}/tasks/{task_id}/download/{asset_name}"
         response = requests.get(url, headers=self._headers(), stream=True)
         response.raise_for_status()
@@ -149,5 +155,7 @@ class ODMClient:
         buffer = BytesIO()
         for chunk in response.iter_content(chunk_size=8192):
             buffer.write(chunk)
+
+        self.log.info(f"Downloaded {format_size(getsizeof(buffer), binary=True)}")
         buffer.seek(0)
         return buffer
