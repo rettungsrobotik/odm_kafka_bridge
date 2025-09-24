@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
-from confluent_kafka import Message, Producer
+from confluent_kafka import Consumer, KafkaError, Message, Producer, TopicPartition
 from io import BytesIO
 import logging
 from pathlib import Path
+from time import time
 from typing import Optional
 
 
@@ -45,15 +46,13 @@ class KafkaClient:
         self.url = config["kafka"]["url"]
         self.log.debug(f"Connecting to Kafka @ {self.url}")
 
-        producer_conf = {
+        # configuration shared by producer & consumer
+        conf_common = {
             "bootstrap.servers": self.url,
             "message.max.bytes": 104857600,  # 100 MiB
             "socket.timeout.ms": 30000,  # 30sec
-            "message.timeout.ms": 30000,
-            "linger.ms": 0,
-            "batch.num.messages": 1,
         }
-
+        # authentification config
         kafka_auth = config["kafka"].get("auth", None)
         if kafka_auth is not None:
             assert username is not None and username != "", "Kafka username required!"
@@ -78,18 +77,44 @@ class KafkaClient:
                 assert p.exists(), f"Kafka SSL key or certificate missing"
 
             # Append auth info to producer configuration
-            producer_conf["security.protocol"] = "SASL_SSL"
-            producer_conf["sasl.mechanism"] = "PLAIN"
-            producer_conf["sasl.username"] = username
-            producer_conf["sasl.password"] = password
-            producer_conf["ssl.ca.location"] = str(path_ca)
-            producer_conf["ssl.certificate.location"] = str(path_crt)
-            producer_conf["ssl.key.location"] = str(path_key)
-            producer_conf["ssl.key.password"] = ssl_pwd
+            conf_common["security.protocol"] = "SASL_SSL"
+            conf_common["sasl.mechanism"] = "PLAIN"
+            conf_common["sasl.username"] = username
+            conf_common["sasl.password"] = password
+            conf_common["ssl.ca.location"] = str(path_ca)
+            conf_common["ssl.certificate.location"] = str(path_crt)
+            conf_common["ssl.key.location"] = str(path_key)
+            conf_common["ssl.key.password"] = ssl_pwd
         else:
-            self.log.info("No authentication configured")
+            self.log.warning("No authentification for Kafka cluster configured")
 
-        self.producer = Producer(producer_conf)
+        # create producer
+        conf_producer = {
+            "message.timeout.ms": 30000,
+            "batch.num.messages": 1,
+            "linger.ms": 0,
+        }
+        self.producer = Producer({**conf_common, **conf_producer})
+
+        # create consumer
+        conf_consumer = {
+            "group.id": "odm-kafka-bridge",
+            "auto.offset.reset": "latest",
+            "enable.partition.eof": True,  # can be used to detect end of stream
+        }
+        self.consumer = Consumer({**conf_common, **conf_consumer})
+        self.topic_partition = TopicPartition(config["kafka"]["topic"], 0)
+        self.consumer.assign([self.topic_partition])
+        self.consumer.poll(0.1)  # ensure assignment is processed
+
+        return
+
+    def close(self) -> None:
+        """
+        Cleanup of Kafka interfaces.
+        """
+        self.producer.flush()
+        self.consumer.close()
         return
 
     def verify_connection(
@@ -117,6 +142,63 @@ class KafkaClient:
         self.log.info(f"Connected to {self.url}")
         return
 
+    def has_been_produced_already(
+        self,
+        task_id: str,
+        asset_name: str,
+        topic: str,
+        key: str,
+        timeout: float = 10.0,
+        num_last_messages: int = 3,
+    ) -> bool:
+        """
+        Returns True if the task ID appears in the headers of any of the last N messages.
+
+        Args:
+            task_id: Task ID to check.
+            topic: Kafka topic.
+            key: Message key to filter on.
+            timeout: Max time to wait for messages.
+            num_last_messages: Number of trailing messages to inspect.
+        """
+        assert timeout > 0.0 and num_last_messages >= 1
+        self.log.info(
+            f"Checking for previous messages in topic '{topic}' ({timeout=}s)"
+        )
+
+        # Can't use consumer.subscribe(): if group.id is the same, the consumer won't
+        # get messages that a consumer in a previous process has already received.
+        # Instead, use partition offsets to reliably get last N messages every time.
+        low, high = self.consumer.get_watermark_offsets(self.topic_partition)
+        offset = max(low, high - num_last_messages)
+        self.consumer.seek(TopicPartition(topic, 0, offset))
+        self.log.debug(f"Starting from offset {offset}")
+
+        start = time()
+        while (time() - start) < timeout:
+            msg = self.consumer.poll(0.5)
+            if not msg:
+                continue
+            if msg.error():
+                if msg.error().code() != KafkaError._PARTITION_EOF:
+                    self.log.warning(f"Kafka error: {msg.error()}")
+                continue
+
+            if msg.key() != key.encode("utf-8"):
+                continue
+
+            headers = dict(msg.headers() or [])
+            msg_task_id = headers.get("task_id", b"").decode("utf-8")
+            msg_asset_name = headers.get("asset_name", b"").decode("utf-8")
+            if msg_task_id == task_id and msg_asset_name == asset_name:
+                self.log.debug(f"Duplicate message found at offset {msg.offset()}")
+                self.consumer.unassign()
+                return True
+
+        self.log.info("No duplicate message found before timeout.")
+        self.consumer.unassign()
+        return False
+
     def produce(
         self, asset: BytesIO, headers: list[tuple], topic: str, key: str
     ) -> None:
@@ -125,7 +207,7 @@ class KafkaClient:
 
         Args:
             asset: Raw asset bytes to send.
-            headers: Structured metadata, e.g. project name and task id.
+            headers: Structured metadata, e.g. project name and task ID.
             topic: name of the Kakfa topic to send the data to.
             key: key of the message (used by Kafka to assign partition, ensure ordering).
         """
@@ -157,5 +239,6 @@ class KafkaClient:
             raise RuntimeError(f"{err}")
         else:
             self.log.info(f"Message sent successfully to Kafka topic '{msg.topic()}'")
+            self.log.debug(f"in partition {msg.partition()} at offset {msg.offset()}")
 
         return

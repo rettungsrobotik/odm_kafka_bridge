@@ -87,22 +87,33 @@ def run_bridge(
     # Find project and task with asset
     project_id = odm.get_project_id_by_name(project_name)
 
-    # Enter monitor loop
-    old_task_id = None
+    # main loop
+    last_iter_task_id = None
+    topic = config["kafka"]["topic"]
+    key = config["kafka"]["key"]
     try:
         while not shutdown:
 
             task_id = odm.get_latest_task_with_asset(project_id, asset_name)
 
             if not task_id:
-                pass
-            elif task_id == old_task_id:
+                log.warning("Could not find task ID.")
+            elif task_id == last_iter_task_id:
                 log.info(f"It's the same task as last time, going back to sleep")
-            else:  # Success!
-                old_task_id = task_id
+            elif kafka.has_been_produced_already(task_id, asset_name, topic, key):
+                log.info(
+                    f"Message with matching task ID, asset name and key was already produced to Kafka, probably in a previous run."
+                )
+            else:
+                # Send the asset!
+
+                if shutdown:  # in case CTRL+C was pressed during kafka check
+                    break
 
                 # Download
                 asset: BytesIO = odm.download_asset(project_id, task_id, asset_name)
+                if shutdown:  # in case CTRL+C was pressed during download
+                    break
 
                 # Upload
                 headers = [
@@ -111,22 +122,24 @@ def run_bridge(
                     ("task_id", str(task_id)),
                     ("asset_name", str(asset_name)),
                 ]
-                topic = config["kafka"]["topic"]
-                key = config["kafka"]["key"]
-                if not shutdown:
-                    kafka.produce(asset, headers, topic, key)
+                kafka.produce(asset, headers, topic, key)
 
+            last_iter_task_id = task_id
+
+            # sleep in small steps for faster reaction to shutdown request
             if sleep_intrvl > 0 and not shutdown:
-                # sleep in 1sec steps for slightly faster reaction to CTRL+C
                 for _ in range(sleep_intrvl):
                     if shutdown:
                         break
-                    sleep(1)
+                    sleep(0.5)
             else:
+                # running in oneshot mode, or shutdown requested
                 break
 
     except KeyboardInterrupt:
         log.info("Received keyboard interrupt")
+    finally:
+        kafka.close()
 
     log.info("ODM->Kafka bridge exiting.")
     return

@@ -1,5 +1,5 @@
 [bridge]
-monitor_interval_sec = 60 # (int) set to <= 0 or remove for oneshot mode
+monitor_interval_sec = 60 # (int) set to -1 or lower for "oneshot" mode
 
 [webodm]
 url = "https://webodm.rettungsrobotik.de"
@@ -8,11 +8,11 @@ asset = 'dsm.tif'
 
 [kafka]
 #url = "localhost:9092"
-url = "server.crexdata.eu:9092"
+url = "server.crexdata.eu:9192"
 topic = "UPB-CREXDATA-RealtimeDEM-Stream"
 key = "dsm.tif"
 
-# If the server does not use authentication, remove this block.
+# If the server does not use authentication, remove or outcomment this block.
 [kafka.auth]
 cert_dir = "config/certs" # absolute path, or relative to current working directory
 ca = "kafka_ca.crt"

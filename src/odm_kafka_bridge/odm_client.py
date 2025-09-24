@@ -89,7 +89,7 @@ class ODMClient:
             ValueError if no project found.
         """
 
-        self.log.debug(f"Fetching project ID for {project_name}")
+        self.log.debug(f"Fetching project ID for '{project_name}'")
         url = f"{self.base_url}/api/projects"
         response = requests.get(
             url, headers=self._headers(), params={"name": project_name}
