@@ -1,21 +1,21 @@
 # CREXDATA ODM→Kafka Bridge
 
 - [Introduction](#introduction)
-   * [Workflow](#workflow)
-   * [Message format](#message-format)
+  - [Workflow](#workflow)
+  - [Message format](#message-format)
 - [Getting Started](#getting-started)
-   * [1. Install](#1-install)
-   * [2. Prepare authentication](#2-prepare-authentication)
-      + [Convert Kafka keys and certificates](#convert-kafka-keys-and-certificates)
-      + [Store credentials](#store-credentials)
-   * [3. Run](#3-run)
+  - [1. Install](#1-install)
+  - [2. Prepare authentication](#2-prepare-authentication)
+    - [Convert Kafka keys and certificates](#convert-kafka-keys-and-certificates)
+    - [Store credentials](#store-credentials)
+  - [3. Run](#3-run)
 - [Development](#development)
-   * [Local testing](#local-testing)
-   * [Possible extensions and improvements](#possible-extensions-and-improvements)
+  - [Local testing](#local-testing)
+  - [Possible extensions and improvements](#possible-extensions-and-improvements)
 
 ## Introduction
 
-This Python project, developed in the context of the [CREXDATA](https://crexdata.eu) project,
+This Python project, developed in the context of the [CREXDATA](https://crexdata.eu) joint research project,
 serves as a bridge between the DRZ' [Open Drone Map (ODM)](https://opendronemap.org) instance and the CREXDATA system,
 which is build on [Apache Kafka](https://kafka.apache.org/).
 It can download assets, such as Digital Surface Models (DSMs) from ODM and relay them to a Kafka topic.
@@ -25,15 +25,15 @@ It can download assets, such as Digital Surface Models (DSMs) from ODM and relay
 The tool...
 
 1. Loads configuration from `config.toml` and credentials from `.env`.
-If the config has a kafka.auth block, it also loads SSL certificates.
+If the config has a `kafka.auth` block, it also loads SSL certificates.
 2. Connects to WebODM and Kafka servers.
 3. Determines WebODM project ID of the configured project name.
 4. Gets the newest task within the project that has the desired asset (e.g., `dsm.tif`).
 5. Checks if the asset has already been produced to Kafka.
-6. If not: downloads the asset from WebODM, wraps it with some headers and produces it to a Kafka topic.
+6. If not: downloads the asset from WebODM, wraps it with some headers, and produces it to a Kafka topic.
 
-By default, stepts 4–6 are repated with 60 seconds waiting time between iterations.
-The tool can also run in "oneshot" mode, by configuring the time between iterations to `-1`.
+By default, steps 4–6 are repeated with 60 seconds waiting time between iterations.
+The tool can also run in "one-shot" mode, by configuring the time between iterations to `-1` or lower.
 
 ### Message format
 
@@ -62,7 +62,8 @@ pip install .
 
 #### Convert Kafka keys and certificates
 
-The `.jks` files provided by the CREXDATA server admins (`kafka.truststore.jks` and `kafka.keystore.jks`)
+The `.jks` files provided by the CREXDATA server admins
+(`kafka.truststore.jks` and `kafka.keystore.jks`)
 must be converted to `.key` and `.crt` files to be compatible with `confluent_kafka`.
 
 ```bash
