@@ -1,16 +1,19 @@
-#!/usr/bin/env python
+"""
+kafka_client.py
 
-from confluent_kafka import Consumer, KafkaError, Message, Producer, TopicPartition
-from io import BytesIO
+Handles communication with Kafka cluster.
+"""
+
 import logging
+from io import BytesIO
 from pathlib import Path
 from time import time
-from typing import Optional
+from typing import List, Optional, Tuple
+
+from confluent_kafka import Consumer, KafkaError, Message, Producer, TopicPartition
 
 
 class KafkaClient:
-    """Interacts with a Kafka cluster."""
-
     def __init__(
         self,
         config: dict,
@@ -23,8 +26,8 @@ class KafkaClient:
         Constructor.
 
         Note: username, password and ssl_pwd are required if the config contains a
-        kafka.auth block. If the block does not exist, it is assumed that the server does
-        not require authentication.
+        kafka.auth block. If the block does not exist, it is assumed that the server
+        does not require authentication.
 
         Args:
             config: dict with configuration
@@ -52,16 +55,17 @@ class KafkaClient:
             "message.max.bytes": 104857600,  # 100 MiB
             "socket.timeout.ms": 30000,  # 30sec
         }
+
         # authentification config
         kafka_auth = config["kafka"].get("auth", None)
         if kafka_auth is not None:
             assert username is not None and username != "", "Kafka username required!"
             assert password is not None and password != "", "Kafka password required!"
-            assert (
-                ssl_pwd is not None and ssl_pwd != ""
-            ), "Kafka SSL key password required!"
+            assert ssl_pwd is not None and ssl_pwd != "", (
+                "Kafka SSL key password required!"
+            )
 
-            # Locate certificates
+            # locate certificates
             cert_dir = Path(kafka_auth["cert_dir"]).resolve()
             self.log.info(f"Loading SSL keys and certificates from {cert_dir}")
             if not cert_dir.exists() or not cert_dir.is_dir():
@@ -74,7 +78,7 @@ class KafkaClient:
             self.log.debug(f"Loading client certificate from: {path_crt}")
             self.log.debug(f"Loading client key from: {path_key}")
             for p in [path_ca, path_crt, path_key]:
-                assert p.exists(), f"Kafka SSL key or certificate missing"
+                assert p.exists(), "Kafka SSL key or certificate missing"
 
             # Append auth info to producer configuration
             conf_common["security.protocol"] = "SASL_SSL"
@@ -121,15 +125,16 @@ class KafkaClient:
         self, topic: Optional[str] = None, timeout: float = 5.0
     ) -> None:
         """
-        Tries to fetch cluster metadata to verify the connection.
+        Verify the connection to the cluster by fetching metadata.
 
         Args:
             topic: Optional topic name to check existence of
             timeout: Timeout [s]
 
         Raises:
-            RuntimeError: If metadata cannot be retrieved.
+            RuntimeError: if metadata cannot be retrieved.
         """
+
         self.log.debug("Verifying connection")
         try:
             md = self.producer.list_topics(timeout=timeout)
@@ -152,15 +157,17 @@ class KafkaClient:
         num_last_messages: int = 3,
     ) -> bool:
         """
-        Returns True if the task ID appears in the headers of any of the last N messages.
+        Return True if the specified asset appears in a topic's last N messages.
 
         Args:
             task_id: Task ID to check.
-            topic: Kafka topic.
+            asset_name: Name of the asset.
+            topic: Kafka topic name.
             key: Message key to filter on.
-            timeout: Max time to wait for messages.
-            num_last_messages: Number of trailing messages to inspect.
+            timeout: Max time to wait for messages [s].
+            num_last_messages: N = number of trailing messages to inspect.
         """
+
         assert timeout > 0.0 and num_last_messages >= 1
         self.log.info(
             f"Checking for previous messages in topic '{topic}' ({timeout=}s)"
@@ -200,16 +207,16 @@ class KafkaClient:
         return False
 
     def produce(
-        self, asset: BytesIO, headers: list[tuple], topic: str, key: str
+        self, asset: BytesIO, headers: List[Tuple], topic: str, key: str
     ) -> None:
         """
-        Sends a message to a Kafka topic.
+        Send a message to a Kafka topic.
 
         Args:
             asset: Raw asset bytes to send.
             headers: Structured metadata, e.g. project name and task ID.
             topic: name of the Kakfa topic to send the data to.
-            key: key of the message (used by Kafka to assign partition, ensure ordering).
+            key: message key (used by Kafka to assign partition, ensure ordering).
         """
 
         self.log.debug(f"Producing message to {topic=} with {key=}")
@@ -225,7 +232,7 @@ class KafkaClient:
 
     def callback(self, err: str, msg: Message) -> None:
         """
-        Gets called by Kafka after a message as been sent.
+        Called by Kafka after a message as been sent.
 
         Args:
             err: error message

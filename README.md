@@ -15,10 +15,11 @@
 
 ## Introduction
 
-This Python project, developed in the context of the [CREXDATA](https://crexdata.eu) joint research project,
-serves as a bridge between the DRZ' [Open Drone Map (ODM)](https://opendronemap.org) instance and the CREXDATA system,
-which is build on [Apache Kafka](https://kafka.apache.org/).
-It can download assets, such as Digital Surface Models (DSMs) from ODM and relay them to a Kafka topic.
+This Python project, developed in the context of the [CREXDATA](https://crexdata.eu)
+joint research project, serves as a bridge between the DRZ'
+[Open Drone Map (ODM)](https://opendronemap.org) instance and the CREXDATA system, which
+is built on [Apache Kafka](https://kafka.apache.org/). It can download assets, such as
+Digital Surface Models (DSMs) from ODM and relay them to a Kafka topic.
 
 ### Workflow
 
@@ -33,7 +34,8 @@ If the config has a `kafka.auth` block, it also loads SSL certificates.
 6. If not: downloads the asset from WebODM, wraps it with some headers, and produces it to a Kafka topic.
 
 By default, steps 4–6 are repeated with 60 seconds waiting time between iterations.
-The tool can also run in "one-shot" mode, by configuring the time between iterations to `-1` or lower.
+The tool can also run in "one-shot" mode, by configuring the time between iterations to
+`-1` or lower.
 
 ### Message format
 
@@ -50,11 +52,11 @@ The asset will be produced to Kafka as a raw-byte stream. The headers contain:
 
 ### 1. Install
 
-Python >= 3.10 required.
-Install the dependencies (see [pyproject.toml](pyproject.toml)) and the program itself with:
+Python >= 3.10 required. Install the dependencies (see [pyproject.toml](pyproject.toml))
+and the program itself with:
 
 ```bash
-cd <project root>
+cd <project_root>
 pip install .
 ```
 
@@ -62,9 +64,9 @@ pip install .
 
 #### Convert Kafka keys and certificates
 
-The `.jks` files provided by the CREXDATA server admins
-(`kafka.truststore.jks` and `kafka.keystore.jks`)
-must be converted to `.key` and `.crt` files to be compatible with `confluent_kafka`.
+The `.jks` files provided by the CREXDATA server admins (`kafka.truststore.jks` and
+`kafka.keystore.jks`) must be converted to `.key` and `.crt` files to make them 
+compatible with `confluent_kafka`.
 
 ```bash
 # Export CA certificate from truststore to intermediate PKCS12 format
@@ -90,19 +92,19 @@ openssl pkcs12 -in keystore.p12 -nokeys -out config/certs/kafka_client.crt
 
 #### Store credentials
 
-Copy [config/example.env](config/example.env) to `config/.env`
-and fill in the required username and password fields.
-The Kafka credentials may be omitted if the server does not require authentication.
+Copy [config/example.env](config/example.env) to `config/.env` and fill in the required
+username and password fields. The Kafka credentials may be omitted if the server does
+not require authentication.
 
 ### 3. Run
 
-Edit [config/config.toml](config/config.toml) to set
-server URLs, ODM project name, Kafka topic name, certificate paths etc.
+Edit [config/config.toml](config/config.toml) to set server URLs, ODM project name,
+Kafka topic name, certificate paths etc.
 
 Then, run the command line interface (CLI):
 
 ```bash
-odm-kafka-bridge -c <path-to-config-dir>
+odm-kafka-bridge -c config
 ```
 
 Check available options (e.g., debug mode) with:
@@ -136,8 +138,8 @@ Example console output:
 
 ## Development
 
-The core module in [src/odm_kafka_bridge](src/odm_kafka_bridge)
-can be imported by other projects:
+The core module in [src/odm_kafka_bridge](src/odm_kafka_bridge) can be imported by other
+projects:
 
 ```python
 from odm_kafka_bridge.bridge import run_bridge
@@ -146,8 +148,8 @@ from odm_kafka_bridge.bridge import run_bridge
 ### Local testing
 
 A Kafka cluster for testing can be spun up on localhost using docker compose.
-Set `kafka.url` in `config.toml` to `localhost:9092`
-and remove the `kafka.auth` block, since it does not require authentication.
+Set `kafka.url` in `config.toml` to `localhost:9092` and remove the `kafka.auth` block,
+since it does not require authentication.
 
 ```bash
 docker compose -f test/docker-compose.yml up

@@ -1,18 +1,22 @@
-#!/usr/bin/env python
+"""
+cli.py
+
+Commandline interface
+"""
+
+import logging
+import os
+from argparse import ArgumentParser, Namespace
+from pathlib import Path
+from typing import Any, Dict
+
+import toml
+from dotenv import load_dotenv
 
 from odm_kafka_bridge.bridge import run_bridge
 
-from argparse import ArgumentParser, Namespace
-from dotenv import load_dotenv
-import logging
-import os
-from pathlib import Path
-import toml
-from typing import Any
-
 
 def main():
-
     args = parse_args()
 
     # Configure logger
@@ -44,7 +48,8 @@ def main():
         kafka_ssl_key_pw = os.getenv("KAFKA_SSL_KEY_PASSWORD")
         if not kafka_username or not kafka_password or not kafka_ssl_key_pw:
             raise EnvironmentError(
-                "Kafka authentication configured but credentials not found. Please check your .env."
+                "Kafka authentication configured but credentials not found."
+                + " Please check your .env!"
             )
 
     try:
@@ -68,10 +73,10 @@ def main():
 
 def parse_args() -> Namespace:
     """
-    Parses the commandline arguments with argparse.
+    Parse the commandline arguments.
 
     Returns:
-        Namespace with parsed arguments
+        argparse.Namespace
     """
 
     parser = ArgumentParser(description="ODM->Kafka bridge")
@@ -81,9 +86,9 @@ def parse_args() -> Namespace:
         "-c",
         "--config",
         type=Path,
-        metavar="dir",
+        metavar="DIR",
         required=True,
-        help="Path to directory containing config.toml and .env",
+        help="Path to *directory* containing config.toml and .env",
     )
 
     # Optional
@@ -93,14 +98,14 @@ def parse_args() -> Namespace:
         action="store_true",
         default=False,
         help="(optional) Enable debug mode (default: %(default)s).\
-        Increases verbosity and automatically drops into a debugger if an error occured.",
+        Increase verbosity and automatically drop into a debugger if an error occured.",
     )
     return parser.parse_args()
 
 
-def load_config(path: Path) -> dict[str, Any]:
+def load_config(path: Path) -> Dict[str, Any]:
     """
-    Loads configuration parameters from TOML file.
+    Load configuration parameters from TOML file.
 
     Args:
         path: Path to config.toml

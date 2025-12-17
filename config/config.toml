@@ -12,9 +12,9 @@ url = "server.crexdata.eu:9192"
 topic = "UPB-CREXDATA-RealtimeDEM-Stream"
 key = "dsm.tif"
 
-# If the server does not use authentication, remove or outcomment this block.
-[kafka.auth]
-cert_dir = "config/certs" # absolute path, or relative to current working directory
-ca = "kafka_ca.crt"
-client_crt = "kafka_client.crt"
-client_key = "kafka_client.key"
+# Enable this block if Kafka cluster requires authentication
+#[kafka.auth]
+#cert_dir = "config/certs" # absolute path, or relative to current working directory
+#ca = "kafka_ca.crt"
+#client_crt = "kafka_client.crt"
+#client_key = "kafka_client.key"

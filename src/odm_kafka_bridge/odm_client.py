@@ -1,19 +1,20 @@
-#!/usr/bin/env python
+"""
+odm_client.py
 
-from humanfriendly import format_size
+Handles communication with WebODM via its REST API.
+"""
+
+import logging
 from io import BytesIO
 from json import loads
-import logging
-import requests
 from sys import getsizeof
 from typing import Optional
 
+import requests
+from humanfriendly import format_size
+
 
 class ODMClient:
-    """
-    Client for downloading assets created by ODM (e.g., DSM) through ODM'S REST API.
-    """
-
     def __init__(
         self, base_url: str, username: str, password: str, debug: bool = False
     ):
@@ -30,10 +31,9 @@ class ODMClient:
         log_lvl = logging.DEBUG if debug else logging.INFO
         self.log.setLevel(log_lvl)
 
-        access_args = [base_url, username, password]
-        assert [
-            p is not None and len(p) > 0 for p in access_args
-        ], f"URL, username and password may not be empty but at least one ist: {access_args}"
+        assert len(base_url) > 0, "base_url must not be empty"
+        assert len(username) > 0, "username must not be empty"
+        assert len(password) > 0, "password must not be empty"
 
         self.base_url = base_url.rstrip("/")
         self.username = username
@@ -48,7 +48,7 @@ class ODMClient:
         Authenticate with the server and store the JWT token.
 
         NOTE: for security reasons, it is recommended to use a dedicated user with
-        minimal read-only permissions.
+        minimal read-only permissions!
 
         Raises
             HTTPError
@@ -57,7 +57,8 @@ class ODMClient:
         self.log.debug(f"Trying to authenticate {self.username} @ {self.base_url}")
         url = f"{self.base_url}/api/token-auth/"
         data = {"username": self.username, "password": self.password}
-        # NOTE: Equivalent curl command:
+
+        # Equivalent curl command:
         # curl -X POST -d "username={username}&password=*****" {url}
 
         response = requests.post(url, data=data, allow_redirects=False)
@@ -65,7 +66,6 @@ class ODMClient:
         response.raise_for_status()
         self.token = loads(response_text)["token"]
         self.log.info(f"Connected to {self.base_url}")
-
         return
 
     def _headers(self) -> dict:
@@ -141,10 +141,10 @@ class ODMClient:
         Args:
             project_id: Project ID.
             task_id: Task ID.
-            asset_name: Name of the asset to download.
+            asset_name: Name of the asset to download (e.g., "dsm.tif")
 
         Returns:
-            Asset in byte-form.
+            BytesIO: asset in raw byte form.
         """
 
         self.log.info(f"Downloading asset '{asset_name}' ...")

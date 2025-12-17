@@ -1,7 +1,7 @@
 [project]
 name = "odm-kafka-bridge"
-version = "1.0.0"
-description = "A bridge that extracts an asset from WebODM and streams it into Kafka."
+version = "0.1.0"
+description = "A bridge that relays assets (e.g., DSMs) from WebODM to a Kafka cluster."
 authors = [
 	{ name="Merlin Stampa", email="merlin.stampa@rettungsrobotik.de" }
 ]
@@ -19,6 +19,11 @@ dependencies = [
 	"toml",
 ]
 
+[dependency-groups]
+dev = [
+    "ruff",
+]
+
 [project.scripts]
 odm-kafka-bridge = "odm_kafka_bridge.cli:main"
 
@@ -29,6 +34,9 @@ Issues = "https://github.com/rettungsrobotik/odm_kafka_bridge/issues"
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
+
+[tool.ruff.lint]
+extend-select = ["I"]
 
 [tool.setuptools]
 package-dir = { "" = "src" }

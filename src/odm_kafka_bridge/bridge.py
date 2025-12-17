@@ -1,13 +1,17 @@
-#!/usr/bin/env python
+"""
+bridge.py
 
-from odm_kafka_bridge.odm_client import ODMClient
-from odm_kafka_bridge.kafka_client import KafkaClient
+Represents the bridge between ODM and Kafka.
+"""
 
-from io import BytesIO
 import logging
-from signal import signal, Signals, SIGINT, SIGTERM
+from io import BytesIO
+from signal import SIGINT, SIGTERM, Signals, signal
 from time import sleep
 from typing import Optional
+
+from odm_kafka_bridge.kafka_client import KafkaClient
+from odm_kafka_bridge.odm_client import ODMClient
 
 shutdown = False  # global flag set by signal handlers
 
@@ -93,19 +97,19 @@ def run_bridge(
     key = config["kafka"]["key"]
     try:
         while not shutdown:
-
             task_id = odm.get_latest_task_with_asset(project_id, asset_name)
 
             if not task_id:
                 log.warning("Could not find task ID.")
             elif task_id == last_iter_task_id:
-                log.info(f"It's the same task as last time, going back to sleep")
+                log.info("It's the same task as last time, going back to sleep")
             elif kafka.has_been_produced_already(task_id, asset_name, topic, key):
                 log.info(
-                    f"Message with matching task ID, asset name and key was already produced to Kafka, probably in a previous run."
+                    "Message with matching task ID, asset name and key was already "
+                    + "produced to Kafka, probably in a previous run."
                 )
             else:
-                # Send the asset!
+                # New asset identified
 
                 if shutdown:  # in case CTRL+C was pressed during kafka check
                     break
